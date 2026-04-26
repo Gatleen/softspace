@@ -1,0 +1,25 @@
+:root {
+  font-family: "Jersey 25", system-ui, sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  height: 100%; /* Ensure full height */
+  margin: 0;
+  padding: 0;
+  /* This effectively forces the scrollbar if content is too long */
+  overflow-y: auto;
+}
+
+#root {
+  min-height: 100%; /* Allow the app to grow */
+  width: 100%;
+}

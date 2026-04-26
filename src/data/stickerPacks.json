@@ -1,0 +1,178 @@
+[
+  {
+    "id": "cats",
+    "name": "Cats",
+    "folder": "Cat",
+    "files": [
+      "Cat1.png",
+      "Cat2.png",
+      "Cat3.png",
+      "Cat4.png",
+      "Cat5.png",
+      "Cat6.png",
+      "Cat7.png",
+      "Cat8.png"
+    ]
+  },
+  {
+    "id": "dogs",
+    "name": "Dogs",
+    "folder": "Dog",
+    "files": [
+      "Dog1.png",
+      "Dog2.png",
+      "Dog3.png",
+      "Dog4.png",
+      "Dog5.png",
+      "Dog6.png",
+      "Dog7.png"
+    ]
+  },
+  {
+    "id": "bears",
+    "name": "Bears",
+    "folder": "Bear",
+    "files": [
+      "Bear1.png",
+      "Bear2.png",
+      "Bear3.png",
+      "Bear4.png",
+      "Bear5.png",
+      "Bear6.png",
+      "Bear7.png"
+    ]
+  },
+  {
+    "id": "animals",
+    "name": "Animals",
+    "folder": "Animals",
+    "files": [
+      "Animal1.png",
+      "Animal2.png",
+      "Animal3.png",
+      "Animal4.png",
+      "Animal5.png",
+      "Animal6.png",
+      "Animal7.png",
+      "Animal8.png",
+      "Animal9.png",
+      "Animal10.png"
+    ]
+  },
+  {
+    "id": "drink",
+    "name": "Drink",
+    "folder": "Drink",
+    "files": [
+      "Drink1.png",
+      "Drink2.png",
+      "Drink3.png",
+      "Drink4.png",
+      "Drink5.png",
+      "Drink6.png"
+    ]
+  },
+  {
+    "id": "desserts",
+    "name": "Desserts",
+    "folder": "Desserts",
+    "files": [
+      "Desserts1.png",
+      "Desserts2.png",
+      "Desserts3.png",
+      "Desserts4.png",
+      "Desserts5.png",
+      "Desserts6.png"
+    ]
+  },
+  {
+    "id": "productivity",
+    "name": "Productivity",
+    "folder": "Productivity",
+    "files": [
+      "Productivity1.png",
+      "Productivity2.png",
+      "Productivity3.png",
+      "Productivity4.png",
+      "Productivity5.png",
+      "Productivity6.png",
+      "Productivity7.png",
+      "Productivity8.png",
+      "Productivity9.png",
+      "Productivity10.png",
+      "Productivity11.png",
+      "Productivity12.png",
+      "Productivity13.png",
+      "Productivity14.png",
+      "Productivity15.png",
+      "Productivity16.png",
+      "Productivity17.png"
+    ]
+  },
+  {
+    "id": "chill",
+    "name": "Chill",
+    "folder": "Chill",
+    "files": [
+      "Chill1.png",
+      "Chill2.png",
+      "Chill3.png",
+      "Chill4.png",
+      "Chill5.png",
+      "Chill6.png",
+      "Chill7.png",
+      "Chill8.png",
+      "Chill9.png",
+      "Chill10.png",
+      "Chill11.png",
+      "Chill12.png",
+      "Chill13.png",
+      "Chill14.png"
+    ]
+  },
+  {
+    "id": "cozyroom",
+    "name": "Cozy Room",
+    "folder": "CozyRoom",
+    "files": [
+      "CozyRoom1.png",
+      "CozyRoom2.png",
+      "CozyRoom3.png",
+      "CozyRoom4.png",
+      "CozyRoom5.png",
+      "CozyRoom6.png",
+      "CozyRoom7.png"
+    ]
+  },
+  {
+    "id": "magical",
+    "name": "Magical",
+    "folder": "Magical",
+    "files": [
+      "Magical1.png",
+      "Magical2.png",
+      "Magical3.png",
+      "Magical4.png",
+      "Magical5.png",
+      "Magical6.png",
+      "Magical7.png"
+    ]
+  },
+  {
+    "id": "washitape",
+    "name": "Washi Tape",
+    "folder": "WashiTape",
+    "files": [
+      "WashiTape1.png",
+      "WashiTape2.png",
+      "WashiTape3.png",
+      "WashiTape4.png",
+      "WashiTape5.png",
+      "WashiTape6.png",
+      "WashiTape7.png",
+      "WashiTape8.png",
+      "WashiTape9.png",
+      "WashiTape10.png"
+    ]
+  }
+]
