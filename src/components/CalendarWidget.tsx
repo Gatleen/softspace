@@ -10,7 +10,6 @@ import {
   Input,
   VStack,
   Button,
-  Circle,
   Center,
   Image,
 } from "@chakra-ui/react";

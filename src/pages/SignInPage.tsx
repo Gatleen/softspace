@@ -242,7 +242,7 @@ const SignInPage = ({ onSuccess, onGuest }: Props) => {
             </Box>
 
             {error && (
-              <Box px={4} py={3} bg="red.500" bg="rgba(239,68,68,0.25)"
+              <Box px={4} py={3} bg="rgba(239,68,68,0.25)"
                 borderRadius="xl" border="1px solid rgba(239,68,68,0.4)">
                 <Text color="red.200" fontSize="sm" fontWeight="700">⚠️ {error}</Text>
               </Box>

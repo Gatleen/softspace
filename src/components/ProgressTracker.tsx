@@ -1,4 +1,4 @@
-import { Box, Text, Flex, Image, VStack, HStack } from "@chakra-ui/react";
+import { Box, Text, Image, VStack, HStack } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 
 interface Subtask {

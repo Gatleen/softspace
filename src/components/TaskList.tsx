@@ -6,7 +6,6 @@ import {
   VStack,
   HStack,
   Text,
-  Badge,
   IconButton,
   Image,
 } from "@chakra-ui/react";
@@ -469,7 +468,7 @@ const TaskList = ({ tasks, setTasks }: Props) => {
                           colorPalette="purple"
                         >
                           <Checkbox.HiddenInput />
-                          <Checkbox.Control borderRadius="full" size="sm">
+                          <Checkbox.Control style={{ borderRadius: "9999px" }}>
                             <Checkbox.Indicator />
                           </Checkbox.Control>
                         </Checkbox.Root>

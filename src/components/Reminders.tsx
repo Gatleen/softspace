@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Box, Button, Input, Textarea, VStack, HStack, Text, Badge, IconButton, SimpleGrid,
 } from "@chakra-ui/react";
-import { Plus, Trash2, Bell, BellOff, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Bell, BellOff, CheckCircle2, Clock } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface Reminder {

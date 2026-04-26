@@ -86,7 +86,6 @@ const FinanceTracker = () => {
   const [addAmount, setAddAmount] = useState("");
   const [goalCalc, setGoalCalc] = useState<Record<string, { months: string; monthly: string }>>({});
   const [goalError, setGoalError] = useState("");
-  const [goalAddError, setGoalAddError] = useState<Record<string, string>>({}); // eslint-disable-line
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchTransactions(); fetchGoals(); }, []);
@@ -494,7 +493,7 @@ const FinanceTracker = () => {
               <BarChart data={monthlyData} barCategoryGap="30%">
                 <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={(v) => `RM ${v}`} tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} width={55} />
-                <ReTooltip formatter={(v: number) => fmt(v)} contentStyle={{ borderRadius: "12px", border: "1px solid #fce7f3", fontSize: "12px" }} />
+                <ReTooltip formatter={(v: any) => fmt(v)} contentStyle={{ borderRadius: "12px", border: "1px solid #fce7f3", fontSize: "12px" }} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px", fontWeight: 700 }} />
                 <Bar dataKey="income" name="Income" fill="#10B981" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="expenses" name="Expenses" fill="#EC4899" radius={[6, 6, 0, 0]} />
