@@ -120,11 +120,7 @@ const Dashboard = () => {
   const [currentView, setCurrentView] = useState("dashboard");
   const [reminderToast, setReminderToast] = useState<{ id: string; title: string; note?: string } | null>(null);
 
-  // Sample Data
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, text: "Review React basics", completed: false, priority: "high", createdAt: Date.now(), tags: [], starred: false, archived: false, subtasks: [] },
-    { id: 2, text: "Practice CSS styling", completed: true, priority: "medium", createdAt: Date.now(), tags: [], starred: false, archived: false, subtasks: [] },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const [notes, setNotes] = useState([
     {

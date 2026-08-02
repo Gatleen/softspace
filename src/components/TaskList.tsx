@@ -305,7 +305,7 @@ const TaskList = ({ tasks, setTasks }: Props) => {
         </Box>
 
       {/* 📋 The List */}
-      <VStack gap={3} align="stretch">
+      <VStack gap={3} align="stretch" maxH="520px" overflowY="auto" pr="4px">
         {filteredTasks.map((task) => {
           const pc = PRIORITY_CONFIG[task.priority];
           const isExpanded = expandedIds.has(task.id);
