@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { Box, Image, Text, Textarea } from "@chakra-ui/react";
+import SectionHeader from "./ui/SectionHeader";
+import SoftSpaceCard from "./ui/SoftSpaceCard";
 
 interface Mood {
   id: number;
@@ -238,345 +241,238 @@ const MoodTracker = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(to bottom right, var(--chakra-colors-pink-50), var(--chakra-colors-purple-50))",
-        padding: "40px",
-        fontFamily: "inherit",
-      }}
-    >
-      <div style={{ textAlign: "center", marginBottom: "40px" }}>
-        <h1 style={{ color: "#FB7185", fontSize: "32px", fontWeight: "900" }}>
-          How are you, bestie? ✨
-        </h1>
-        <p style={{ color: "#FDA4AF", fontWeight: "600" }}>
-          Select a vibe to check in
-        </p>
-      </div>
+    <Box>
+      <SectionHeader title="How are you feeling?" />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 400px",
-          gap: "40px",
-          maxWidth: "1200px",
-          margin: "0 auto",
-        }}
-      >
-        {/* 🧩 Interactive Mood Picker Grid */}
-        <div
-          style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "24px",
-            border: "4px solid #FFE4E6",
-            height: "fit-content",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              gap: "15px",
-            }}
+      <Box display="flex" gap="22px" alignItems="flex-start">
+        {/* 🧩 Mood Picker Grid */}
+        <Box flex="1">
+          <SoftSpaceCard
+            title="Pick your mood"
+            subtitle="25 little faces to choose from"
           >
-            {moods.map((mood) => (
-              <div
-                key={mood.id}
-                onClick={() => setSelectedMood(mood)}
-                className="mood-cell"
-                style={{
-                  aspectRatio: "1/1",
-                  background:
-                    selectedMood?.id === mood.id ? mood.color : "#F8FAFC",
-                  borderRadius: "15px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  border:
-                    selectedMood?.id === mood.id
-                      ? "4px solid #334155"
-                      : "2px solid #E2E8F0",
-                  transition: "all 0.2s",
-                  position: "relative",
-                }}
-              >
-                <img
-                  src={mood.image}
-                  alt={mood.name}
-                  style={{
-                    maxWidth: "70%",
-                    maxHeight: "70%",
-                    objectFit: "contain",
-                    imageRendering: "pixelated",
-                  }}
-                />
-
-                {/* 🏷️ Pink Hover Label */}
-                <span className="mood-hover-label">{mood.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+            <Box display="grid" gridTemplateColumns="repeat(5, 1fr)" gap="10px">
+              {moods.map((mood) => {
+                const selected = selectedMood?.id === mood.id;
+                return (
+                  <Box
+                    key={mood.id}
+                    onClick={() => setSelectedMood(mood)}
+                    p="10px 6px"
+                    borderRadius="16px"
+                    background={
+                      selected
+                        ? "linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+                        : "#FFF9FC"
+                    }
+                    border="2.5px solid"
+                    borderColor={selected ? "white" : "#FFE9F1"}
+                    cursor="pointer"
+                    textAlign="center"
+                    transition="transform 0.15s"
+                    _hover={{ transform: "translateY(-2px)" }}
+                  >
+                    <Image
+                      src={mood.image}
+                      alt={mood.name}
+                      boxSize="46px"
+                      mx="auto"
+                      objectFit="contain"
+                    />
+                    <Text
+                      fontSize="10px"
+                      fontWeight="800"
+                      color={selected ? "white" : "#A08B9B"}
+                      mt="4px"
+                    >
+                      {mood.name}
+                    </Text>
+                  </Box>
+                );
+              })}
+            </Box>
+          </SoftSpaceCard>
+        </Box>
 
         {/* 💌 Logging & Advice Column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div
-            style={{
-              background: "white",
-              padding: "30px",
-              borderRadius: "24px",
-              border: "4px solid #FFE4E6",
-              minHeight: "450px",
-            }}
+        <Box width="400px" flexShrink={0} display="flex" flexDirection="column" gap="18px">
+          {/* Selected-mood detail card */}
+          <Box
+            bg="white"
+            border="2.5px solid #FFDDEB"
+            borderRadius="24px"
+            boxShadow="0 6px 0 rgba(255,199,222,.45)"
+            p="24px"
+            textAlign="center"
           >
             {selectedMood ? (
-              <div style={{ animation: "pop 0.3s ease-out" }}>
-                <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                  <img
-                    src={selectedMood.image}
-                    style={{ width: "80px", imageRendering: "pixelated" }}
-                  />
-                  <h2
-                    style={{
-                      color: selectedMood.color,
-                      fontSize: "24px",
-                      fontWeight: "900",
-                      margin: "10px 0",
-                    }}
-                  >
-                    {selectedMood.name}
-                  </h2>
-                </div>
-
-                <div
-                  style={{
-                    background: "#F8FAFC",
-                    padding: "15px",
-                    borderRadius: "15px",
-                    marginBottom: "20px",
-                  }}
+              <>
+                <Image
+                  src={selectedMood.image}
+                  alt={selectedMood.name}
+                  boxSize="104px"
+                  mx="auto"
+                  objectFit="contain"
+                />
+                <Text
+                  fontFamily="'Jersey 25', cursive"
+                  fontSize="38px"
+                  color="#C0577E"
+                  lineHeight="1.1"
+                  mt="6px"
                 >
-                  <h4
-                    style={{
-                      fontSize: "12px",
-                      color: "#64748B",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    BESTIE ADVICE:
-                  </h4>
-                  <p
-                    style={{
-                      color: "#334155",
-                      fontWeight: "600",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {selectedMood.advice}
-                  </p>
-                </div>
+                  {selectedMood.name}
+                </Text>
+                <Text fontSize="13.5px" fontWeight="700" color="#8A7690">
+                  {selectedMood.desc}
+                </Text>
 
-                <textarea
-                  placeholder="Why are we feeling this way? (Optional)"
+                <Box
+                  mt="16px"
+                  p="14px 16px"
+                  borderRadius="16px"
+                  background="linear-gradient(135deg,#FDF2F8,#F4EEFF)"
+                  border="2px solid #EEDCFB"
+                  textAlign="left"
+                >
+                  <Text
+                    fontSize="10px"
+                    fontWeight="800"
+                    letterSpacing="2px"
+                    color="#8A6BD1"
+                  >
+                    TINY ADVICE
+                  </Text>
+                  <Text fontSize="13px" fontWeight="600" color="#5C4A63" mt="4px">
+                    {selectedMood.advice}
+                  </Text>
+                </Box>
+
+                <Textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: "100px",
-                    borderRadius: "12px",
-                    border: "2px solid #E2E8F0",
-                    padding: "12px",
-                    fontFamily: "inherit",
-                    resize: "none",
-                    marginBottom: "15px",
-                    boxSizing: "border-box",
-                  }}
+                  placeholder="Anything you want to remember about today?"
+                  mt="14px"
+                  p="12px 14px"
+                  borderRadius="16px"
+                  border="2px dashed #FFC8DE"
+                  textAlign="left"
+                  minH="56px"
+                  fontSize="13px"
+                  color="#5C4A63"
+                  _placeholder={{ color: "#C2AECF" }}
+                  _focus={{ borderColor: "#F27DAB" }}
                 />
 
-                <button
+                <Box
+                  as="button"
                   onClick={logMood}
-                  style={{
-                    width: "100%",
-                    padding: "15px",
-                    background: "#FB7185",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "12px",
-                    fontWeight: "800",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 0 #BE123C",
-                  }}
+                  mt="14px"
+                  w="100%"
+                  py="12px"
+                  background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+                  border="2.5px solid white"
+                  borderRadius="999px"
+                  boxShadow="0 5px 0 rgba(196,87,127,.22)"
+                  cursor="pointer"
                 >
-                  LOG VIBE ✨
-                </button>
-              </div>
-            ) : (
-              <div
-                style={{
-                  textAlign: "center",
-                  color: "#FDA4AF",
-                  marginTop: "100px",
-                }}
-              >
-                <p style={{ fontSize: "18px", fontWeight: "700" }}>
-                  Pick a mood to start
-                  <br />
-                  reflecting!
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* 🕰 Recent Vibes History (Fixed Squish + Date/Time) */}
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "24px",
-              border: "2px solid #FFE4E6",
-              maxHeight: "300px",
-              overflowY: "auto",
-            }}
-            className="custom-scrollbar"
-          >
-            <h3
-              style={{
-                fontSize: "12px",
-                fontWeight: "800",
-                color: "#FB7185",
-                marginBottom: "15px",
-              }}
-            >
-              RECENT LOGS
-            </h3>
-            {history.length > 0 ? (
-              history.map((h, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    marginBottom: "12px",
-                    padding: "12px",
-                    borderRadius: "12px",
-                    background: "#FFF9FA",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                  <Text
+                    fontFamily="'Jersey 25', cursive"
+                    fontSize="20px"
+                    color="white"
+                    textShadow="0 2px 0 rgba(196,87,127,.3)"
+                    letterSpacing=".5px"
                   >
-                    <img
-                      src={h.mood.image}
-                      style={{
-                        maxWidth: "100%",
-                        maxHeight: "100%",
-                        objectFit: "contain",
-                        imageRendering: "pixelated",
-                      }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "baseline",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: "700",
-                          color: "#475569",
-                        }}
-                      >
-                        {h.mood.name}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: "800",
-                          color: "#94A3B8",
-                        }}
-                      >
-                        {h.fullTime}
-                      </span>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        color: "#64748B",
-                        margin: "4px 0 0",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {h.note}
-                    </p>
-                  </div>
-                </div>
-              ))
+                    Log this mood ♡
+                  </Text>
+                </Box>
+              </>
             ) : (
-              <p
-                style={{
-                  textAlign: "center",
-                  fontSize: "12px",
-                  color: "#94A3B8",
-                }}
+              <Text
+                color="#A08B9B"
+                fontWeight="700"
+                fontSize="14px"
+                py="40px"
               >
-                No entries today ✨
-              </p>
+                Pick a mood to start
+                <br />
+                reflecting!
+              </Text>
             )}
-          </div>
-        </div>
-      </div>
+          </Box>
 
-      <style>{`
-        @keyframes pop {
-          0% { transform: scale(0.95); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
+          {/* Recent check-ins */}
+          <Box
+            bg="white"
+            border="2.5px solid #EEDCFB"
+            borderRadius="24px"
+            boxShadow="0 6px 0 rgba(205,180,246,.35)"
+            p="18px 20px"
+          >
+            <Text
+              fontSize="10.5px"
+              fontWeight="800"
+              letterSpacing="2px"
+              color="#8A6BD1"
+              mb="12px"
+            >
+              RECENT CHECK-INS
+            </Text>
 
-        .mood-cell:hover {
-          transform: translateY(-5px);
-        }
-
-        .mood-hover-label {
-          position: absolute;
-          bottom: -10px;
-          background: #FB7185; /* Pink Background */
-          color: white; /* White Text */
-          padding: 4px 10px;
-          border-radius: 8px;
-          font-size: 11px;
-          font-weight: 800;
-          opacity: 0;
-          pointer-events: none;
-          transition: 0.2s;
-          z-index: 10;
-          white-space: nowrap;
-          box-shadow: 0 4px 10px rgba(251, 113, 133, 0.3);
-        }
-
-        .mood-cell:hover .mood-hover-label {
-          opacity: 1;
-          bottom: -5px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #FFF1F2; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #FDA4AF; border-radius: 10px; }
-      `}</style>
-    </div>
+            {history.length > 0 ? (
+              <Box display="flex" flexDirection="column" gap="8px">
+                {history.map((h, i) => (
+                  <Box
+                    key={i}
+                    display="flex"
+                    alignItems="center"
+                    gap="11px"
+                    p="10px 12px"
+                    borderRadius="14px"
+                    background="#FFF9FC"
+                    border="2px solid #FFE9F1"
+                  >
+                    <Image
+                      src={h.mood.image}
+                      alt={h.mood.name}
+                      boxSize="34px"
+                      objectFit="contain"
+                      flexShrink={0}
+                    />
+                    <Box flex="1" minW={0}>
+                      <Text fontSize="12.5px" fontWeight="800" color="#C0577E">
+                        {h.mood.name}
+                      </Text>
+                      <Text
+                        fontSize="11px"
+                        fontWeight="600"
+                        color="#A08B9B"
+                        style={{ wordBreak: "break-word" }}
+                      >
+                        {h.note}
+                      </Text>
+                    </Box>
+                    <Text
+                      fontSize="10px"
+                      fontWeight="700"
+                      color="#C2AECF"
+                      flexShrink={0}
+                      whiteSpace="nowrap"
+                    >
+                      {h.fullTime}
+                    </Text>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Text textAlign="center" fontSize="12px" color="#C2AECF">
+                No entries today ✨
+              </Text>
+            )}
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

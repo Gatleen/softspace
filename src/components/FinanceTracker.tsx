@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import {
-  Box, Button, Input, VStack, HStack, Text, Badge, IconButton, SimpleGrid,
-} from "@chakra-ui/react";
-import { Plus, Trash2, Target, Upload, Wallet, Printer } from "lucide-react";
+import { Box, Button, Input, Text, IconButton } from "@chakra-ui/react";
+import { Plus, Trash2, Target, Upload, Printer } from "lucide-react";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Legend,
 } from "recharts";
 import { supabase } from "../lib/supabase";
+import SectionHeader from "./ui/SectionHeader";
+import SoftSpaceCard from "./ui/SoftSpaceCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TransactionType = "income" | "expense";
@@ -44,21 +44,43 @@ const CATEGORY_COLORS: Record<string, string> = {
 const fmt = (n: number) =>
   "RM " + new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-// ─── Table primitives ─────────────────────────────────────────────────────────
-const TH = ({ children, w }: { children?: React.ReactNode; w?: string }) => (
-  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", fontWeight: 800,
-    letterSpacing: "0.08em", color: "#be185d", background: "#fdf2f8",
-    borderBottom: "2px solid #fbcfe8", borderRight: "1px solid #fce7f3", width: w }}>
-    {children}
-  </th>
+// ─── Shared visual bits ───────────────────────────────────────────────────────
+const selectStyle: React.CSSProperties = {
+  fontSize: "12px", fontWeight: 700, color: "#5C4A63", background: "white",
+  border: "1.5px solid #FFDDEB", borderRadius: "10px", padding: "6px 8px", outline: "none",
+};
+
+const BarTrack = ({ pct, color }: { pct: number; color: string }) => (
+  <Box h="13px" borderRadius="999px" background="#FFF0F6" border="1.5px solid #FFE9F1" overflow="hidden">
+    <Box h="100%" borderRadius="999px" style={{ width: `${Math.min(pct, 100)}%`, background: color, opacity: 0.75, transition: "width 0.4s ease" }} />
+  </Box>
 );
 
-const TD = ({ children, color, align }: { children: React.ReactNode; color?: string; align?: string }) => (
-  <td style={{ padding: "10px 16px", fontSize: "14px", color: color || "#374151",
-    fontWeight: color ? 700 : 500, borderBottom: "1px solid #fce7f3",
-    borderRight: "1px solid #fce7f3", textAlign: (align as any) || "left" }}>
-    {children}
-  </td>
+const Pill = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <Box
+    as="button"
+    onClick={onClick}
+    px="14px"
+    py="6px"
+    borderRadius="999px"
+    background={active ? "linear-gradient(135deg,#FFC2DA,#CDB4F6)" : "white"}
+    border={active ? "2.5px solid white" : "2px solid #FFDDEB"}
+    boxShadow={active ? "0 4px 0 rgba(196,87,127,.22)" : "none"}
+    cursor="pointer"
+    flexShrink={0}
+  >
+    <Text
+      fontFamily="'Jersey 25', cursive"
+      fontSize="13px"
+      letterSpacing=".3px"
+      color={active ? "white" : "#B79ACB"}
+      textShadow={active ? "0 1px 0 rgba(196,87,127,.3)" : "none"}
+      textTransform="capitalize"
+      lineHeight="1.1"
+    >
+      {children}
+    </Text>
+  </Box>
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -231,9 +253,9 @@ const FinanceTracker = () => {
   const filtered = filterType === "all" ? transactions : transactions.filter((t) => t.type === filterType);
 
   const donutData = [
-    { name: "Income", value: totalIncome, color: "#10B981" },
-    { name: "Expenses", value: totalExpenses, color: "#EC4899" },
-    ...(balance > 0 ? [{ name: "Savings", value: balance, color: "#A855F7" }] : []),
+    { name: "Income", value: totalIncome, color: "#0E9F6E" },
+    { name: "Expenses", value: totalExpenses, color: "#E11D48" },
+    ...(balance > 0 ? [{ name: "Savings", value: balance, color: "#8A6BD1" }] : []),
   ].filter((d) => d.value > 0);
 
   const monthlyData = useMemo(() => {
@@ -256,202 +278,324 @@ const FinanceTracker = () => {
 
   const savingsRate = totalIncome > 0 ? ((balance / totalIncome) * 100).toFixed(0) : "0";
 
+  // Same "spend by category" computation used by both the Ledger sidebar
+  // ("Where it went") and the Analytics tab — logic unchanged, just shared.
+  const categoryBreakdown = useMemo(() => {
+    const map: Record<string, number> = {};
+    transactions.filter((t) => t.type === "expense").forEach((t) => {
+      map[t.category] = (map[t.category] || 0) + t.amount;
+    });
+    return Object.entries(map).sort(([, a], [, b]) => b - a);
+  }, [transactions]);
+
   return (
-    <Box bg="linear-gradient(135deg, #fff0f6 0%, #f8f0ff 100%)" minH="100vh" p={8}>
-
-      {/* Header */}
-      <HStack mb={8} gap={3}>
-        <Box w="40px" h="40px" bg="pink.100" borderRadius="xl" display="flex" alignItems="center" justifyContent="center">
-          <Wallet size={22} color="#EC4899" />
-        </Box>
-        <VStack align="start" gap={0}>
-          <Text fontSize="2xl" fontWeight="900" color="pink.500">Finance Tracker</Text>
-          <Text fontSize="xs" color="pink.300" fontWeight="bold">Your money, your glow ✨</Text>
-        </VStack>
-      </HStack>
-
-      {/* Summary Cards */}
-      <SimpleGrid columns={3} gap={5} mb={8}>
-        {[
-          { label: "BALANCE", value: balance, color: balance >= 0 ? "#EC4899" : "#EF4444", border: balance >= 0 ? "#fce7f3" : "#fee2e2" },
-          { label: "INCOME", value: totalIncome, color: "#10B981", border: "#d1fae5" },
-          { label: "EXPENSES", value: totalExpenses, color: "#EF4444", border: "#fee2e2" },
-        ].map((card) => (
-          <Box key={card.label} bg="white" p={5} borderRadius="2xl" boxShadow="0 4px 20px rgba(255,182,193,0.2)"
-            border="2px solid" style={{ borderColor: card.border }} textAlign="center">
-            <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">{card.label}</Text>
-            <Text fontSize="2xl" fontWeight="900" style={{ color: card.color }}>{fmt(card.value)}</Text>
+    <Box>
+      <SectionHeader
+        title="Money Diary"
+        meta={
+          <Box display="flex" gap="8px">
+            {(["ledger", "analytics", "goals"] as TabView[]).map((t) => (
+              <Pill key={t} active={tab === t} onClick={() => setTab(t)}>
+                {t === "ledger" ? "Ledger" : t === "analytics" ? "Analytics" : "Goals"}
+              </Pill>
+            ))}
           </Box>
-        ))}
-      </SimpleGrid>
+        }
+      />
 
-      {/* Tabs */}
-      <HStack mb={6} bg="white" p={1} borderRadius="full" w="fit-content" boxShadow="sm" border="1px solid" borderColor="pink.100">
-        {(["ledger", "analytics", "goals"] as TabView[]).map((t) => (
-          <Button key={t} size="sm" borderRadius="full"
-            variant={tab === t ? "solid" : "ghost"}
-            colorPalette={tab === t ? "pink" : "gray"}
-            fontWeight="800" onClick={() => setTab(t)}>
-            {t === "ledger" ? "📊 Ledger" : t === "analytics" ? "📈 Analytics" : "🎯 Goals"}
-          </Button>
-        ))}
-      </HStack>
+      {/* Summary cards */}
+      <Box display="flex" gap="18px" mb="22px">
+        <Box flex="1" p="18px 22px" borderRadius="22px" bg="white" border="2.5px solid #FFDDEB" boxShadow="0 6px 0 rgba(255,199,222,.45)">
+          <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#F27DAB">THIS MONTH IN</Text>
+          <Text fontFamily="'Jersey 25', cursive" fontSize="40px" color="#0E9F6E" lineHeight="1.1">{fmt(totalIncome)}</Text>
+        </Box>
+        <Box flex="1" p="18px 22px" borderRadius="22px" bg="white" border="2.5px solid #FFDDEB" boxShadow="0 6px 0 rgba(255,199,222,.45)">
+          <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#F27DAB">THIS MONTH OUT</Text>
+          <Text fontFamily="'Jersey 25', cursive" fontSize="40px" color="#E11D48" lineHeight="1.1">{fmt(totalExpenses)}</Text>
+        </Box>
+        <Box flex="1" p="18px 22px" borderRadius="22px" background="linear-gradient(135deg,#FDF2F8,#F4EEFF)" border="2.5px solid #EEDCFB" boxShadow="0 6px 0 rgba(205,180,246,.35)">
+          <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#8A6BD1">BALANCE LEFT</Text>
+          <Text fontFamily="'Jersey 25', cursive" fontSize="40px" color="#8A6BD1" lineHeight="1.1">{fmt(balance)}</Text>
+        </Box>
+      </Box>
 
       {/* ══════════ LEDGER TAB ══════════ */}
       {tab === "ledger" && (
-        <Box bg="white" borderRadius="3xl" boxShadow="0 8px 30px rgba(255,182,193,0.15)"
-          border="2px solid" borderColor="pink.100" overflow="hidden">
+        <Box display="flex" gap="22px" alignItems="flex-start">
 
-          <HStack px={6} py={4} borderBottom="2px solid" borderColor="pink.100" justify="space-between" flexWrap="wrap" gap={3}>
-            <Text fontWeight="800" fontSize="lg" color="pink.500">Transaction Ledger 📋</Text>
-            <HStack gap={2} flexWrap="wrap">
-              {/* Filter */}
-              <HStack gap={1}>
+          {/* Left — transactions table */}
+          <Box flex="1">
+            <SoftSpaceCard
+              title="Transactions"
+              subtitle="All · Income · Expense"
+              bodyPadding="0"
+              headerRight={
+                <Box
+                  as="button"
+                  onClick={addTransaction}
+                  display="flex"
+                  alignItems="center"
+                  gap="4px"
+                  px="12px"
+                  py="5px"
+                  borderRadius="999px"
+                  bg="rgba(255,255,255,.4)"
+                  color="white"
+                  fontSize="11px"
+                  fontWeight="800"
+                  flexShrink={0}
+                  cursor="pointer"
+                >
+                  <Plus size={12} /> Add row
+                </Box>
+              }
+            >
+              {/* Filter pills */}
+              <Box display="flex" gap="8px" p="16px 20px 12px">
                 {(["all", "income", "expense"] as const).map((f) => (
-                  <Button key={f} size="xs" borderRadius="full"
-                    variant={filterType === f ? "solid" : "ghost"}
-                    colorPalette={f === "income" ? "green" : f === "expense" ? "pink" : "purple"}
-                    onClick={() => setFilterType(f)} fontWeight="bold" textTransform="capitalize">{f}</Button>
+                  <Pill key={f} active={filterType === f} onClick={() => setFilterType(f)}>{f}</Pill>
                 ))}
-              </HStack>
-              {/* Print controls */}
-              <HStack gap={2} bg="pink.50" px={3} py={1.5} borderRadius="full">
-                <select value={printPeriod}
-                  style={{ fontSize: "12px", fontWeight: 700, color: "#EC4899", background: "transparent", border: "none", outline: "none" }}
-                  onChange={(e) => setPrintPeriod(e.target.value as any)}>
-                  <option value="day">Day</option>
-                  <option value="month">Month</option>
-                  <option value="year">Year</option>
+              </Box>
+
+              {/* Dashed add-row */}
+              <Box
+                display="flex"
+                alignItems="center"
+                gap="8px"
+                p="10px 14px"
+                m="0 20px 14px"
+                border="2px dashed #FFC8DE"
+                borderRadius="14px"
+                background="#FFFBFD"
+                flexWrap="wrap"
+              >
+                <Input
+                  type="date" value={newRow.date} size="xs" w="130px"
+                  bg="white" border="1.5px solid #FFDDEB" borderRadius="10px" fontWeight="600" color="#5C4A63"
+                  _focus={{ borderColor: "#F27DAB" }}
+                  onChange={(e) => setNewRow({ ...newRow, date: e.target.value })}
+                />
+                <Input
+                  placeholder="Description..." value={newRow.description} size="xs" flex="1" minW="120px"
+                  bg="white" border="1.5px solid #FFDDEB" borderRadius="10px" fontWeight="600" color="#5C4A63"
+                  _placeholder={{ color: "#C2AECF" }}
+                  _focus={{ borderColor: "#F27DAB" }}
+                  onChange={(e) => setNewRow({ ...newRow, description: e.target.value })}
+                  onKeyDown={(e) => e.key === "Enter" && addTransaction()}
+                />
+                <Box
+                  as="button"
+                  onClick={() => setNewRow({ ...newRow, type: newRow.type === "expense" ? "income" : "expense", category: "Other" })}
+                  px="10px" py="5px" borderRadius="999px"
+                  background={newRow.type === "income" ? "#E6F9F1" : "#FFF0F6"}
+                  border={`1.5px solid ${newRow.type === "income" ? "#0E9F6E" : "#F27DAB"}`}
+                  cursor="pointer" flexShrink={0}
+                >
+                  <Text fontSize="10px" fontWeight="800" color={newRow.type === "income" ? "#0E9F6E" : "#F27DAB"}>
+                    {newRow.type === "income" ? "↑ IN" : "↓ OUT"}
+                  </Text>
+                </Box>
+                <select
+                  value={newRow.category}
+                  style={{ ...selectStyle, width: "110px" }}
+                  onChange={(e) => setNewRow({ ...newRow, category: e.target.value })}
+                >
+                  {(newRow.type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
-                <Input type={printPeriod === "year" ? "number" : printPeriod === "month" ? "month" : "date"}
+                <Input
+                  type="number" placeholder="0.00" value={newRow.amount} size="xs" w="90px"
+                  bg="white" border="1.5px solid #FFDDEB" borderRadius="10px" fontWeight="700" color="#5C4A63"
+                  _focus={{ borderColor: "#F27DAB" }}
+                  onChange={(e) => setNewRow({ ...newRow, amount: e.target.value })}
+                  onKeyDown={(e) => e.key === "Enter" && addTransaction()}
+                />
+                <IconButton
+                  aria-label="Add row" size="xs" borderRadius="full" flexShrink={0}
+                  background="linear-gradient(135deg,#FFC2DA,#CDB4F6)" color="white"
+                  onClick={addTransaction}
+                >
+                  <Plus size={14} />
+                </IconButton>
+              </Box>
+
+              {/* Table header */}
+              <Box
+                display="grid" gridTemplateColumns="70px 1fr 120px 120px 32px"
+                background="#FFF6FA" borderBottom="2.5px solid #FFDDEB" p="10px 20px"
+              >
+                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">DATE</Text>
+                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">DESCRIPTION</Text>
+                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">CATEGORY</Text>
+                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E" textAlign="right">AMOUNT</Text>
+                <Box />
+              </Box>
+
+              {/* Rows */}
+              {txLoading ? (
+                <Text textAlign="center" py="40px" color="#C2AECF" fontWeight="700">Loading...</Text>
+              ) : filtered.length === 0 ? (
+                <Text textAlign="center" py="40px" color="#C2AECF" fontSize="13px" fontWeight="600">No transactions yet — add one above 🌸</Text>
+              ) : (
+                filtered.map((t) => (
+                  <Box
+                    key={t.id}
+                    className="group"
+                    position="relative"
+                    display="grid"
+                    gridTemplateColumns="70px 1fr 120px 120px 32px"
+                    alignItems="center"
+                    p="11px 20px"
+                    borderBottom="1.5px solid #FFF0F6"
+                  >
+                    <Text fontSize="11.5px" fontWeight="700" color="#B79ACB">{t.date}</Text>
+                    <Text
+                      fontSize="13px" fontWeight="600" color="#5C4A63"
+                      style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "8px" }}
+                    >
+                      {t.description}
+                    </Text>
+                    <Box display="flex" alignItems="center" gap="6px" minW={0}>
+                      <Box w="8px" h="8px" borderRadius="full" flexShrink={0} background={CATEGORY_COLORS[t.category] || "#9CA3AF"} />
+                      <Text fontSize="11.5px" fontWeight="800" color="#8A7690" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {t.category}
+                      </Text>
+                    </Box>
+                    <Text fontSize="13.5px" fontWeight="800" textAlign="right" color={t.type === "income" ? "#0E9F6E" : "#E11D48"}>
+                      {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
+                    </Text>
+                    <Box display="flex" justifyContent="flex-end">
+                      <IconButton
+                        aria-label="Delete" size="xs" variant="ghost" borderRadius="md"
+                        opacity={0} _groupHover={{ opacity: 1 }}
+                        onClick={() => deleteTransaction(t.id)}
+                      >
+                        <Trash2 size={12} color="#C2AECF" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                ))
+              )}
+
+              {/* Print footer */}
+              <Box display="flex" alignItems="center" gap="10px" flexWrap="wrap" p="16px 20px" borderTop="2px solid #FFF0F6">
+                <Text fontSize="12px" fontWeight="700" color="#8A7690">Print report:</Text>
+                <Box display="flex" gap="6px">
+                  {(["day", "month", "year"] as const).map((p) => (
+                    <Pill key={p} active={printPeriod === p} onClick={() => setPrintPeriod(p)}>{p}</Pill>
+                  ))}
+                </Box>
+                <Input
+                  type={printPeriod === "year" ? "number" : printPeriod === "month" ? "month" : "date"}
                   value={printPeriod === "year" ? printDate.slice(0, 4) : printPeriod === "month" ? printDate.slice(0, 7) : printDate}
-                  size="xs" bg="white" border="none" borderRadius="md" w="120px" fontWeight="600"
-                  onChange={(e) => setPrintDate(e.target.value)} />
-                <IconButton aria-label="Print" size="xs" colorPalette="pink" borderRadius="full" onClick={printStatement}>
+                  size="xs" w="130px" bg="white" border="1.5px solid #FFDDEB" borderRadius="10px" fontWeight="600" color="#5C4A63"
+                  onChange={(e) => setPrintDate(e.target.value)}
+                />
+                <IconButton
+                  aria-label="Print" size="xs" borderRadius="full"
+                  background="linear-gradient(135deg,#FFC2DA,#CDB4F6)" color="white"
+                  onClick={printStatement}
+                >
                   <Printer size={13} />
                 </IconButton>
-              </HStack>
-            </HStack>
-          </HStack>
+              </Box>
+            </SoftSpaceCard>
+          </Box>
 
-          <Box overflowX="auto">
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <TH w="110px">DATE</TH>
-                  <TH>DESCRIPTION</TH>
-                  <TH w="130px">CATEGORY</TH>
-                  <TH w="100px">TYPE</TH>
-                  <TH w="120px">AMOUNT</TH>
-                  <TH w="50px" />
-                </tr>
-              </thead>
-              <tbody>
-                {/* Add row */}
-                <tr style={{ background: "#faf5ff" }}>
-                  <TD>
-                    <Input type="date" value={newRow.date} size="xs" bg="white" border="1px solid" borderColor="purple.200" borderRadius="md"
-                      onChange={(e) => setNewRow({ ...newRow, date: e.target.value })} />
-                  </TD>
-                  <TD>
-                    <Input placeholder="Description..." value={newRow.description} size="xs" bg="white" border="1px solid" borderColor="purple.200" borderRadius="md"
-                      onChange={(e) => setNewRow({ ...newRow, description: e.target.value })}
-                      onKeyDown={(e) => e.key === "Enter" && addTransaction()} />
-                  </TD>
-                  <TD>
-                    <select value={newRow.category}
-                      style={{ fontSize: "12px", fontWeight: 600, color: "#374151", background: "white", border: "1px solid #d8b4fe", borderRadius: "6px", padding: "4px 8px", width: "100%" }}
-                      onChange={(e) => setNewRow({ ...newRow, category: e.target.value })}>
-                      {(newRow.type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </TD>
-                  <TD>
-                    <select value={newRow.type}
-                      style={{ fontSize: "12px", fontWeight: 700, color: newRow.type === "income" ? "#10B981" : "#EC4899", background: "white", border: "1px solid #d8b4fe", borderRadius: "6px", padding: "4px 8px", width: "100%" }}
-                      onChange={(e) => setNewRow({ ...newRow, type: e.target.value as TransactionType, category: "Other" })}>
-                      <option value="expense">Expense</option>
-                      <option value="income">Income</option>
-                    </select>
-                  </TD>
-                  <TD>
-                    <Input type="number" placeholder="0.00" value={newRow.amount} size="xs" bg="white" border="1px solid" borderColor="purple.200" borderRadius="md" fontWeight="700"
-                      onChange={(e) => setNewRow({ ...newRow, amount: e.target.value })}
-                      onKeyDown={(e) => e.key === "Enter" && addTransaction()} />
-                  </TD>
-                  <td style={{ padding: "10px 16px", borderBottom: "1px solid #fce7f3" }}>
-                    <IconButton aria-label="Add row" size="xs" colorPalette="purple" borderRadius="md" onClick={addTransaction}>
-                      <Plus size={14} />
-                    </IconButton>
-                  </td>
-                </tr>
+          {/* Right column */}
+          <Box width="400px" flexShrink={0} display="flex" flexDirection="column" gap="18px">
 
-                {txLoading ? (
-                  <tr><td colSpan={6} style={{ textAlign: "center", padding: "40px", color: "#FDA4AF", fontWeight: "bold" }}>Loading... ✨</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: "center", padding: "40px", color: "#9CA3AF", fontSize: "14px" }}>No transactions yet — add one above 🌸</td></tr>
-                ) : (
-                  filtered.map((t, i) => (
-                    <tr key={t.id} className="group" style={{ background: i % 2 === 0 ? "white" : "#fff9fb" }}>
-                      <TD color="#6B7280">{t.date}</TD>
-                      <TD>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", maxWidth: "220px" }}>
-                          {t.description}
-                        </span>
-                      </TD>
-                      <TD>
-                        <HStack gap={1.5}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, display: "inline-block", background: CATEGORY_COLORS[t.category] || "#9CA3AF" }} />
-                          <Text fontSize="xs" fontWeight="600">{t.category}</Text>
-                        </HStack>
-                      </TD>
-                      <TD>
-                        <Badge colorPalette={t.type === "income" ? "green" : "pink"} variant="subtle" fontSize="10px" borderRadius="full" px={2}>
-                          {t.type === "income" ? "↑ Income" : "↓ Expense"}
-                        </Badge>
-                      </TD>
-                      <TD color={t.type === "income" ? "#10B981" : "#EC4899"} align="right">
-                        {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
-                      </TD>
-                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #fce7f3" }}>
-                        <IconButton aria-label="Delete" size="xs" variant="ghost" colorPalette="red" borderRadius="md"
-                          opacity={0} _groupHover={{ opacity: 1 }} onClick={() => deleteTransaction(t.id)}>
-                          <Trash2 size={12} />
-                        </IconButton>
-                      </td>
-                    </tr>
-                  ))
-                )}
+            {/* Where it went */}
+            <Box bg="white" border="2.5px solid #EEDCFB" borderRadius="24px" boxShadow="0 6px 0 rgba(205,180,246,.35)" p="18px 20px">
+              <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#8A6BD1" mb="14px">WHERE IT WENT</Text>
+              {categoryBreakdown.length === 0 ? (
+                <Text textAlign="center" fontSize="12px" color="#C2AECF">No expenses yet 🌸</Text>
+              ) : (
+                <Box display="flex" flexDirection="column" gap="12px">
+                  {categoryBreakdown.map(([cat, total]) => {
+                    const pct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
+                    return (
+                      <Box key={cat}>
+                        <Box display="flex" justifyContent="space-between" mb="4px">
+                          <Text fontSize="12px" fontWeight="700" color="#5C4A63">{cat}</Text>
+                          <Text fontSize="12px" fontWeight="800" color="#8A6BD1">{fmt(total)}</Text>
+                        </Box>
+                        <BarTrack pct={pct} color={CATEGORY_COLORS[cat] || "#9CA3AF"} />
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
+            </Box>
 
-                {filtered.length > 0 && (
-                  <tr style={{ background: "#fdf2f8" }}>
-                    <td colSpan={4} style={{ padding: "12px 16px", borderTop: "2px solid #fce7f3" }}>
-                      <Text fontSize="xs" fontWeight="800" color="pink.400" letterSpacing="wider">TOTAL</Text>
-                    </td>
-                    <td style={{ padding: "12px 16px", borderTop: "2px solid #fce7f3", textAlign: "right" }}>
-                      <Text fontWeight="900" fontSize="md" color={balance >= 0 ? "#EC4899" : "#EF4444"}>{fmt(balance)}</Text>
-                    </td>
-                    <td style={{ borderTop: "2px solid #fce7f3" }} />
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            {/* Savings goals summary */}
+            <Box bg="white" border="2.5px solid #FFDDEB" borderRadius="24px" boxShadow="0 6px 0 rgba(255,199,222,.45)" p="18px 20px">
+              <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#F27DAB" mb="14px">SAVINGS GOALS</Text>
+              {goalsLoading ? (
+                <Text textAlign="center" fontSize="12px" color="#C2AECF" fontWeight="700">Loading...</Text>
+              ) : goals.length === 0 ? (
+                <Text textAlign="center" fontSize="12px" color="#C2AECF">No goals yet — dream big! 🌸</Text>
+              ) : (
+                <Box display="flex" flexDirection="column" gap="14px" mb="14px">
+                  {goals.map((goal) => {
+                    const pct = Math.min((goal.saved_amount / goal.target_amount) * 100, 100);
+                    return (
+                      <Box key={goal.id} display="flex" gap="12px" alignItems="center">
+                        <Box
+                          w="52px" h="52px" borderRadius="14px" overflow="hidden" flexShrink={0}
+                          background="linear-gradient(160deg,#FFF0F6,#F6F0FF)"
+                          display="flex" alignItems="center" justifyContent="center"
+                        >
+                          {goal.banner_url ? (
+                            <img src={goal.banner_url} alt={goal.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <Target size={20} color="#F27DAB" opacity={0.5} />
+                          )}
+                        </Box>
+                        <Box flex="1" minW={0}>
+                          <Box display="flex" justifyContent="space-between" alignItems="baseline" gap="6px">
+                            <Text
+                              fontFamily="'Jersey 25', cursive" fontSize="23px" color="#C0577E" lineHeight="1"
+                              style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                            >
+                              {goal.name}
+                            </Text>
+                            <Text fontSize="11px" fontWeight="800" color="#8A6BD1" flexShrink={0}>{pct.toFixed(0)}%</Text>
+                          </Box>
+                          <Box mt="4px">
+                            <BarTrack pct={pct} color="#F9A8CB" />
+                          </Box>
+                          <Text fontSize="11px" fontWeight="700" color="#A08B9B" mt="4px">
+                            {fmt(goal.saved_amount)} of {fmt(goal.target_amount)}
+                          </Text>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
+              <Box
+                as="button"
+                onClick={() => setTab("goals")}
+                w="100%" p="12px" borderRadius="16px" border="2px dashed #FFC8DE"
+                textAlign="center" cursor="pointer" background="transparent"
+              >
+                <Text fontFamily="'Jersey 25', cursive" fontSize="16px" color="#F27DAB">+ New goal</Text>
+              </Box>
+            </Box>
           </Box>
         </Box>
       )}
 
       {/* ══════════ ANALYTICS TAB ══════════ */}
       {tab === "analytics" && (
-        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={8}>
+        <Box display="grid" gridTemplateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap="18px">
 
-          {/* Donut Chart */}
-          <Box bg="white" p={6} borderRadius="3xl" boxShadow="0 8px 30px rgba(255,182,193,0.15)" border="2px solid" borderColor="pink.100">
-            <Text fontWeight="800" fontSize="lg" color="pink.500" mb={1}>Income vs Expenses 🍩</Text>
-            <Text fontSize="xs" color="gray.400" fontWeight="600" mb={6}>Breakdown of your money flow</Text>
-
+          {/* Donut chart */}
+          <SoftSpaceCard title="Income vs Expenses" subtitle="Breakdown of your money flow">
             {totalIncome === 0 && totalExpenses === 0 ? (
-              <Text textAlign="center" color="gray.400" py={12} fontSize="sm">Add some transactions to see your breakdown 🌸</Text>
+              <Text textAlign="center" color="#C2AECF" py="40px" fontSize="13px" fontWeight="600">Add some transactions to see your breakdown 🌸</Text>
             ) : (
               <>
                 <Box position="relative">
@@ -465,152 +609,158 @@ const FinanceTracker = () => {
                       <ReTooltip formatter={(v) => fmt(Number(v))} />
                     </PieChart>
                   </ResponsiveContainer>
-                  {/* Center label */}
                   <Box position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" textAlign="center" pointerEvents="none">
-                    <Text fontSize="xs" fontWeight="800" color="gray.400" letterSpacing="wider">SAVINGS RATE</Text>
-                    <Text fontSize="2xl" fontWeight="900" color="pink.500">{savingsRate}%</Text>
+                    <Text fontSize="10px" fontWeight="800" color="#A08B9B" letterSpacing="1.5px">SAVINGS RATE</Text>
+                    <Text fontFamily="'Jersey 25', cursive" fontSize="28px" color="#C0577E">{savingsRate}%</Text>
                   </Box>
                 </Box>
-                {/* Legend */}
-                <HStack justify="center" gap={6} mt={4} flexWrap="wrap">
+                <Box display="flex" justifyContent="center" gap="18px" mt="14px" flexWrap="wrap">
                   {donutData.map((d) => (
-                    <HStack key={d.name} gap={2}>
+                    <Box key={d.name} display="flex" alignItems="center" gap="6px">
                       <Box w="10px" h="10px" borderRadius="full" style={{ background: d.color }} />
-                      <Text fontSize="xs" fontWeight="700" color="gray.600">{d.name}</Text>
-                      <Text fontSize="xs" color="gray.400">{fmt(d.value)}</Text>
-                    </HStack>
+                      <Text fontSize="12px" fontWeight="700" color="#5C4A63">{d.name}</Text>
+                      <Text fontSize="12px" color="#A08B9B">{fmt(d.value)}</Text>
+                    </Box>
                   ))}
-                </HStack>
+                </Box>
               </>
             )}
-          </Box>
+          </SoftSpaceCard>
 
-          {/* Bar Chart */}
-          <Box bg="white" p={6} borderRadius="3xl" boxShadow="0 8px 30px rgba(255,182,193,0.15)" border="2px solid" borderColor="pink.100">
-            <Text fontWeight="800" fontSize="lg" color="pink.500" mb={1}>Monthly Overview 📊</Text>
-            <Text fontSize="xs" color="gray.400" fontWeight="600" mb={6}>Income vs expenses over the last 6 months</Text>
+          {/* Bar chart */}
+          <SoftSpaceCard title="Monthly Overview" subtitle="Income vs expenses over the last 6 months">
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={monthlyData} barCategoryGap="30%">
-                <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `RM ${v}`} tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} width={55} />
-                <ReTooltip formatter={(v: any) => fmt(v)} contentStyle={{ borderRadius: "12px", border: "1px solid #fce7f3", fontSize: "12px" }} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: "#A08B9B" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={(v) => `RM ${v}`} tick={{ fontSize: 10, fill: "#A08B9B" }} axisLine={false} tickLine={false} width={55} />
+                <ReTooltip formatter={(v: any) => fmt(v)} contentStyle={{ borderRadius: "12px", border: "1.5px solid #FFDDEB", fontSize: "12px" }} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px", fontWeight: 700 }} />
-                <Bar dataKey="income" name="Income" fill="#10B981" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill="#EC4899" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="income" name="Income" fill="#0E9F6E" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="expenses" name="Expenses" fill="#E11D48" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </Box>
+          </SoftSpaceCard>
 
           {/* Category breakdown */}
-          <Box bg="white" p={6} borderRadius="3xl" boxShadow="0 8px 30px rgba(255,182,193,0.15)" border="2px solid" borderColor="pink.100">
-            <Text fontWeight="800" fontSize="lg" color="pink.500" mb={5}>Spending by Category 🏷️</Text>
-            {transactions.filter((t) => t.type === "expense").length === 0 ? (
-              <Text color="gray.400" fontSize="sm">No expenses yet 🌸</Text>
+          <SoftSpaceCard title="Spending by Category" subtitle="Where your expense money goes" borderColor="#EEDCFB" shadowColor="rgba(205,180,246,.35)">
+            {categoryBreakdown.length === 0 ? (
+              <Text color="#C2AECF" fontSize="13px" fontWeight="600">No expenses yet 🌸</Text>
             ) : (
-              <VStack gap={3} align="stretch">
-                {Object.entries(
-                  transactions.filter((t) => t.type === "expense").reduce((acc, t) => {
-                    acc[t.category] = (acc[t.category] || 0) + t.amount;
-                    return acc;
-                  }, {} as Record<string, number>)
-                )
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([cat, total]) => {
-                    const pct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
-                    return (
-                      <Box key={cat}>
-                        <HStack justify="space-between" mb={1}>
-                          <HStack gap={2}>
-                            <Box w="8px" h="8px" borderRadius="full" style={{ background: CATEGORY_COLORS[cat] || "#9CA3AF" }} />
-                            <Text fontSize="sm" fontWeight="700" color="gray.700">{cat}</Text>
-                          </HStack>
-                          <HStack gap={2}>
-                            <Text fontSize="xs" color="gray.400">{pct.toFixed(0)}%</Text>
-                            <Text fontSize="sm" fontWeight="800" color="pink.500">{fmt(total)}</Text>
-                          </HStack>
-                        </HStack>
-                        <Box h="6px" bg="pink.50" borderRadius="full" overflow="hidden">
-                          <Box h="100%" borderRadius="full" style={{ width: `${pct}%`, background: CATEGORY_COLORS[cat] || "#9CA3AF", transition: "width 0.5s ease" }} />
+              <Box display="flex" flexDirection="column" gap="14px">
+                {categoryBreakdown.map(([cat, total]) => {
+                  const pct = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
+                  return (
+                    <Box key={cat}>
+                      <Box display="flex" justifyContent="space-between" mb="4px">
+                        <Box display="flex" alignItems="center" gap="6px">
+                          <Box w="8px" h="8px" borderRadius="full" style={{ background: CATEGORY_COLORS[cat] || "#9CA3AF" }} />
+                          <Text fontSize="13px" fontWeight="700" color="#5C4A63">{cat}</Text>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap="8px">
+                          <Text fontSize="11px" color="#A08B9B">{pct.toFixed(0)}%</Text>
+                          <Text fontSize="13px" fontWeight="800" color="#C0577E">{fmt(total)}</Text>
                         </Box>
                       </Box>
-                    );
-                  })}
-              </VStack>
+                      <BarTrack pct={pct} color={CATEGORY_COLORS[cat] || "#9CA3AF"} />
+                    </Box>
+                  );
+                })}
+              </Box>
             )}
-          </Box>
+          </SoftSpaceCard>
 
           {/* Quick stats */}
-          <Box bg="white" p={6} borderRadius="3xl" boxShadow="0 8px 30px rgba(255,182,193,0.15)" border="2px solid" borderColor="pink.100">
-            <Text fontWeight="800" fontSize="lg" color="pink.500" mb={5}>Quick Stats ✨</Text>
-            <SimpleGrid columns={2} gap={4}>
+          <SoftSpaceCard title="Quick Stats" subtitle="At a glance">
+            <Box display="grid" gridTemplateColumns="1fr 1fr" gap="12px">
               {[
-                { label: "Total Transactions", value: String(transactions.length), color: "#A855F7" },
-                { label: "Savings Rate", value: `${savingsRate}%`, color: balance >= 0 ? "#10B981" : "#EF4444" },
-                { label: "Avg Income/mo", value: fmt(totalIncome / Math.max(monthlyData.filter((m) => m.income > 0).length, 1)), color: "#10B981" },
-                { label: "Avg Expense/mo", value: fmt(totalExpenses / Math.max(monthlyData.filter((m) => m.expenses > 0).length, 1)), color: "#EC4899" },
+                { label: "Total Transactions", value: String(transactions.length), color: "#8A6BD1" },
+                { label: "Savings Rate", value: `${savingsRate}%`, color: balance >= 0 ? "#0E9F6E" : "#E11D48" },
+                { label: "Avg Income/mo", value: fmt(totalIncome / Math.max(monthlyData.filter((m) => m.income > 0).length, 1)), color: "#0E9F6E" },
+                { label: "Avg Expense/mo", value: fmt(totalExpenses / Math.max(monthlyData.filter((m) => m.expenses > 0).length, 1)), color: "#E11D48" },
               ].map((s) => (
-                <Box key={s.label} p={4} bg="pink.50" borderRadius="2xl" textAlign="center">
-                  <Text fontSize="10px" fontWeight="800" color="gray.400" letterSpacing="wider" mb={1}>{s.label.toUpperCase()}</Text>
-                  <Text fontSize="xl" fontWeight="900" style={{ color: s.color }}>{s.value}</Text>
+                <Box key={s.label} p="14px" background="#FFF6FA" borderRadius="16px" textAlign="center">
+                  <Text fontSize="9.5px" fontWeight="800" color="#B79ACB" letterSpacing="1.5px" mb="4px">{s.label.toUpperCase()}</Text>
+                  <Text fontFamily="'Jersey 25', cursive" fontSize="22px" style={{ color: s.color }}>{s.value}</Text>
                 </Box>
               ))}
-            </SimpleGrid>
-          </Box>
-        </SimpleGrid>
+            </Box>
+          </SoftSpaceCard>
+        </Box>
       )}
 
       {/* ══════════ GOALS TAB ══════════ */}
       {tab === "goals" && (
-        <VStack gap={6} align="stretch">
-          {/* Add Goal Form */}
-          <Box bg="white" p={6} borderRadius="3xl" boxShadow="0 8px 30px rgba(255,182,193,0.15)" border="2px solid" borderColor="pink.100">
-            <Text fontWeight="800" fontSize="lg" color="pink.500" mb={5}>New Savings Goal 🎯</Text>
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4} mb={4}>
+        <Box display="flex" flexDirection="column" gap="18px">
+          {/* Add goal form */}
+          <SoftSpaceCard title="New Savings Goal" subtitle="Dream it, save for it">
+            <Box display="grid" gridTemplateColumns={{ base: "1fr", md: "1fr 1fr 1fr" }} gap="14px" mb="14px">
               <Box>
-                <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">GOAL NAME</Text>
-                <Input placeholder="e.g. New Laptop, Trip to Paris..."
-                  value={goalForm.name} bg="pink.50" border="none" borderRadius="xl"
+                <Text fontSize="10px" fontWeight="800" color="#B79ACB" letterSpacing="1.5px" mb="6px">GOAL NAME</Text>
+                <Input
+                  placeholder="e.g. New Laptop, Trip to Paris..." value={goalForm.name}
+                  bg="#FFF6FA" border="1.5px solid #FFDDEB" borderRadius="12px" color="#5C4A63"
+                  _placeholder={{ color: "#C2AECF" }}
+                  _focus={{ borderColor: "#F27DAB" }}
                   onChange={(e) => setGoalForm({ ...goalForm, name: e.target.value })}
-                  _focus={{ boxShadow: "0 0 0 2px #FFB6C1" }} />
+                />
               </Box>
               <Box>
-                <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">TARGET AMOUNT</Text>
-                <Input type="number" placeholder="0.00" value={goalForm.target} bg="pink.50" border="none" borderRadius="xl" fontWeight="bold"
+                <Text fontSize="10px" fontWeight="800" color="#B79ACB" letterSpacing="1.5px" mb="6px">TARGET AMOUNT</Text>
+                <Input
+                  type="number" placeholder="0.00" value={goalForm.target} fontWeight="700"
+                  bg="#FFF6FA" border="1.5px solid #FFDDEB" borderRadius="12px" color="#5C4A63"
+                  _placeholder={{ color: "#C2AECF" }}
+                  _focus={{ borderColor: "#F27DAB" }}
                   onChange={(e) => setGoalForm({ ...goalForm, target: e.target.value })}
-                  _focus={{ boxShadow: "0 0 0 2px #FFB6C1" }} />
+                />
               </Box>
               <Box>
-                <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">BANNER IMAGE</Text>
+                <Text fontSize="10px" fontWeight="800" color="#B79ACB" letterSpacing="1.5px" mb="6px">BANNER IMAGE</Text>
                 <input type="file" accept="image/*" ref={bannerInputRef} style={{ display: "none" }} onChange={handleBannerUpload} />
-                <Button w="100%" variant="outline" colorPalette="pink" borderRadius="xl" borderStyle="dashed" fontWeight="bold"
-                  onClick={() => bannerInputRef.current?.click()}>
+                <Button
+                  w="100%" borderRadius="12px" border="2px dashed #FFC8DE" background="white" color="#F27DAB" fontWeight="700"
+                  onClick={() => bannerInputRef.current?.click()}
+                >
                   <Upload size={15} style={{ marginRight: "6px" }} />
                   {goalForm.banner ? "Change Image" : "Upload Banner"}
                 </Button>
               </Box>
-            </SimpleGrid>
+            </Box>
             {goalForm.banner && (
-              <Box mb={4} borderRadius="2xl" overflow="hidden" h="80px" w="160px">
+              <Box mb="14px" borderRadius="16px" overflow="hidden" h="80px" w="160px">
                 <img src={goalForm.banner} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </Box>
             )}
             {goalError && (
-              <Box mb={3} px={4} py={2.5} bg="red.50" borderRadius="xl" border="1px solid" borderColor="red.200">
-                <Text fontSize="sm" color="red.500" fontWeight="700">⚠️ {goalError}</Text>
+              <Box mb="12px" px="14px" py="10px" background="#FFF0F0" borderRadius="12px" border="1.5px solid #FFC9C9">
+                <Text fontSize="13px" color="#E11D48" fontWeight="700">⚠️ {goalError}</Text>
               </Box>
             )}
-            <Button onClick={addGoal} colorPalette="pink" borderRadius="full" fontWeight="800" boxShadow="0 4px 12px rgba(255,105,180,0.3)">
-              <Plus size={16} style={{ marginRight: "6px" }} /> Add Goal
-            </Button>
-          </Box>
+            <Box
+              as="button"
+              onClick={addGoal}
+              display="inline-flex" alignItems="center" gap="6px"
+              px="22px" py="10px"
+              background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+              border="2.5px solid white"
+              borderRadius="999px"
+              boxShadow="0 5px 0 rgba(196,87,127,.22)"
+              cursor="pointer"
+            >
+              <Plus size={16} color="white" />
+              <Text fontFamily="'Jersey 25', cursive" fontSize="17px" color="white" textShadow="0 2px 0 rgba(196,87,127,.3)">
+                Add Goal
+              </Text>
+            </Box>
+          </SoftSpaceCard>
 
-          {/* Goal Cards — compact 2-column grid */}
+          {/* Goal cards */}
           {goalsLoading ? (
-            <Text textAlign="center" color="pink.300" fontWeight="bold" py={8}>Loading... ✨</Text>
+            <Text textAlign="center" color="#F27DAB" fontWeight="700" py="24px">Loading...</Text>
           ) : goals.length === 0 ? (
-            <Text textAlign="center" color="gray.400" py={8} fontSize="sm">No goals yet — dream big! 🌸</Text>
+            <Text textAlign="center" color="#C2AECF" py="24px" fontSize="13px">No goals yet — dream big! 🌸</Text>
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} alignItems="start">
+            <Box display="grid" gridTemplateColumns={{ base: "1fr", md: "1fr 1fr" }} gap="16px">
               {goals.map((goal) => {
                 const pct = Math.min((goal.saved_amount / goal.target_amount) * 100, 100);
                 const remaining = goal.target_amount - goal.saved_amount;
@@ -618,110 +768,127 @@ const FinanceTracker = () => {
                 const calc = goalCalc[goal.id] || { months: "", monthly: "" };
 
                 return (
-                  <Box key={goal.id} bg="white" borderRadius="2xl" overflow="hidden"
-                    boxShadow="0 4px 16px rgba(255,182,193,0.15)"
-                    border="2px solid" style={{ borderColor: done ? "#bbf7d0" : "#fce7f3" }}>
-
+                  <Box
+                    key={goal.id} bg="white" borderRadius="24px" overflow="hidden"
+                    border="2.5px solid" borderColor={done ? "#B9EBD3" : "#FFDDEB"}
+                    boxShadow={done ? "0 6px 0 rgba(14,159,110,.2)" : "0 6px 0 rgba(255,199,222,.45)"}
+                  >
                     {/* Banner */}
                     <Box position="relative" w="100%">
                       {goal.banner_url ? (
-                        <img src={goal.banner_url} alt={goal.name}
-                          style={{ width: "100%", height: "100px", objectFit: "cover", display: "block" }} />
+                        <img src={goal.banner_url} alt={goal.name} style={{ width: "100%", height: "100px", objectFit: "cover", display: "block" }} />
                       ) : (
-                        <div style={{ width: "100%", height: "60px", display: "flex", alignItems: "center",
-                          justifyContent: "center", background: "linear-gradient(160deg, #fce7f3, #ede9fe)" }}>
-                          <Target size={28} color="#EC4899" opacity={0.35} />
-                        </div>
-                      )}
-                      {done && (
-                        <Box position="absolute" inset={0} bg="blackAlpha.400"
-                          display="flex" alignItems="center" justifyContent="center">
-                          <Text fontSize="2xl">🎉</Text>
+                        <Box w="100%" h="70px" display="flex" alignItems="center" justifyContent="center" background="linear-gradient(160deg,#FFF0F6,#F6F0FF)">
+                          <Target size={28} color="#F27DAB" opacity={0.4} />
                         </Box>
                       )}
-                      <IconButton aria-label="Delete" size="xs" colorPalette="red" variant="solid"
-                        borderRadius="full" position="absolute" top={1.5} right={1.5}
-                        onClick={() => deleteGoal(goal.id)}>
-                        <Trash2 size={10} />
+                      {done && (
+                        <Box position="absolute" inset={0} bg="blackAlpha.400" display="flex" alignItems="center" justifyContent="center">
+                          <Text fontSize="26px">🎉</Text>
+                        </Box>
+                      )}
+                      <IconButton
+                        aria-label="Delete" size="xs" borderRadius="full" position="absolute" top="8px" right="8px"
+                        background="white" color="#E11D48"
+                        onClick={() => deleteGoal(goal.id)}
+                      >
+                        <Trash2 size={12} />
                       </IconButton>
                     </Box>
 
                     {/* Content */}
-                    <Box p={4}>
-                      <HStack justify="space-between" mb={2}>
-                        <Text fontWeight="800" fontSize="sm" color="pink.600"
-                          style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "70%" }}>
+                    <Box p="16px 18px">
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb="8px">
+                        <Text
+                          fontFamily="'Jersey 25', cursive" fontSize="23px" color="#C0577E"
+                          style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "70%" }}
+                        >
                           {goal.name}
                         </Text>
-                        {done
-                          ? <Badge colorPalette="green" variant="solid" borderRadius="full" fontSize="9px">Done! 🎯</Badge>
-                          : <Text fontSize="xs" fontWeight="800" color="pink.400">{pct.toFixed(0)}%</Text>
-                        }
-                      </HStack>
+                        {done ? (
+                          <Box px="10px" py="3px" borderRadius="999px" background="#0E9F6E">
+                            <Text fontSize="10px" fontWeight="800" color="white">Done!</Text>
+                          </Box>
+                        ) : (
+                          <Text fontSize="12px" fontWeight="800" color="#8A6BD1">{pct.toFixed(0)}%</Text>
+                        )}
+                      </Box>
 
                       {/* Progress */}
-                      <Box mb={3}>
-                        <HStack justify="space-between" mb={1}>
-                          <Text fontSize="xs" color="gray.500" fontWeight="600">
-                            {fmt(goal.saved_amount)} <Text as="span" color="gray.300">/ {fmt(goal.target_amount)}</Text>
+                      <Box mb="12px">
+                        <Box display="flex" justifyContent="space-between" mb="4px">
+                          <Text fontSize="12px" color="#5C4A63" fontWeight="600">
+                            {fmt(goal.saved_amount)} <Text as="span" color="#C2AECF">/ {fmt(goal.target_amount)}</Text>
                           </Text>
-                          {!done && <Text fontSize="10px" color="gray.400">{fmt(remaining)} left</Text>}
-                        </HStack>
-                        <Box h="6px" bg="pink.50" borderRadius="full" overflow="hidden">
-                          <div style={{ height: "100%", borderRadius: "9999px", transition: "width 0.5s ease", width: `${pct}%`,
-                            background: done ? "linear-gradient(90deg,#10B981,#34D399)" : "linear-gradient(90deg,#EC4899,#A855F7)" }} />
+                          {!done && <Text fontSize="10.5px" color="#A08B9B">{fmt(remaining)} left</Text>}
                         </Box>
+                        <BarTrack pct={pct} color={done ? "#0E9F6E" : "#F27DAB"} />
                       </Box>
 
                       {/* Add savings + calculator */}
                       {!done && (
                         <Box>
                           {addingToGoal === goal.id ? (
-                            <HStack gap={2} mb={3}>
-                              <Input type="number" placeholder="Amount" value={addAmount} size="sm"
-                                bg="pink.50" border="none" borderRadius="xl" fontWeight="bold" flex={1}
+                            <Box display="flex" gap="8px" mb="12px">
+                              <Input
+                                type="number" placeholder="Amount" value={addAmount} size="sm" flex="1"
+                                bg="#FFF6FA" border="1.5px solid #FFDDEB" borderRadius="12px" fontWeight="700" color="#5C4A63"
                                 onChange={(e) => setAddAmount(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && addToGoal(goal)} />
-                              <Button size="sm" colorPalette="pink" borderRadius="xl" fontWeight="800" onClick={() => addToGoal(goal)}>Add</Button>
-                              <Button size="sm" variant="ghost" borderRadius="xl" onClick={() => { setAddingToGoal(null); setAddAmount(""); }}>✕</Button>
-                            </HStack>
+                                onKeyDown={(e) => e.key === "Enter" && addToGoal(goal)}
+                              />
+                              <Button size="sm" borderRadius="12px" fontWeight="800" background="linear-gradient(135deg,#FFC2DA,#CDB4F6)" color="white" onClick={() => addToGoal(goal)}>
+                                Add
+                              </Button>
+                              <Button size="sm" variant="ghost" borderRadius="12px" color="#B79ACB" onClick={() => { setAddingToGoal(null); setAddAmount(""); }}>
+                                ✕
+                              </Button>
+                            </Box>
                           ) : (
-                            <Button size="xs" colorPalette="pink" variant="outline" borderRadius="xl" fontWeight="800" mb={3}
-                              onClick={() => setAddingToGoal(goal.id)}>
+                            <Box
+                              as="button"
+                              onClick={() => setAddingToGoal(goal.id)}
+                              px="14px" py="6px" mb="12px" display="inline-block"
+                              border="2px solid #FFDDEB" borderRadius="999px" background="white" color="#F27DAB" fontWeight="800" fontSize="12px"
+                              cursor="pointer"
+                            >
                               + Add Savings
-                            </Button>
+                            </Box>
                           )}
 
                           {/* Compact calculator */}
-                          <Box bg="purple.50" px={3} py={2} borderRadius="xl">
-                            <Text fontSize="9px" fontWeight="800" color="purple.400" letterSpacing="wider" mb={1.5}>MONTHLY CALC</Text>
-                            <HStack gap={2}>
-                              <VStack gap={0} align="start" flex={1}>
-                                <Text fontSize="9px" color="gray.400" fontWeight="700">MONTHS</Text>
-                                <Input type="number" placeholder="12" value={calc.months} size="xs"
-                                  bg="white" border="none" borderRadius="lg" fontWeight="700"
-                                  onChange={(e) => updateGoalCalc(goal.id, "months", e.target.value, remaining)} />
-                              </VStack>
-                              <Text fontSize="xs" color="purple.300" fontWeight="800" mt={3}>÷</Text>
-                              <VStack gap={0} align="start" flex={1}>
-                                <Text fontSize="9px" color="gray.400" fontWeight="700">PER MONTH</Text>
-                                <Input type="number" placeholder="100" value={calc.monthly} size="xs"
-                                  bg="white" border="none" borderRadius="lg" fontWeight="700"
-                                  onChange={(e) => updateGoalCalc(goal.id, "monthly", e.target.value, remaining)} />
-                              </VStack>
+                          <Box background="linear-gradient(135deg,#FDF2F8,#F4EEFF)" border="1.5px solid #EEDCFB" px="12px" py="10px" borderRadius="14px">
+                            <Text fontSize="9px" fontWeight="800" color="#8A6BD1" letterSpacing="1.5px" mb="8px">MONTHLY CALC</Text>
+                            <Box display="flex" gap="8px" alignItems="flex-end">
+                              <Box flex="1">
+                                <Text fontSize="9px" color="#A08B9B" fontWeight="700" mb="2px">MONTHS</Text>
+                                <Input
+                                  type="number" placeholder="12" value={calc.months} size="xs"
+                                  bg="white" border="1.5px solid #EEDCFB" borderRadius="8px" fontWeight="700" color="#5C4A63"
+                                  onChange={(e) => updateGoalCalc(goal.id, "months", e.target.value, remaining)}
+                                />
+                              </Box>
+                              <Text fontSize="12px" color="#B79ACB" fontWeight="800" pb="6px">÷</Text>
+                              <Box flex="1">
+                                <Text fontSize="9px" color="#A08B9B" fontWeight="700" mb="2px">PER MONTH</Text>
+                                <Input
+                                  type="number" placeholder="100" value={calc.monthly} size="xs"
+                                  bg="white" border="1.5px solid #EEDCFB" borderRadius="8px" fontWeight="700" color="#5C4A63"
+                                  onChange={(e) => updateGoalCalc(goal.id, "monthly", e.target.value, remaining)}
+                                />
+                              </Box>
                               {calc.months && calc.monthly && (
-                                <VStack gap={0} align="start">
-                                  <Text fontSize="9px" color="gray.400" fontWeight="700">DONE BY</Text>
-                                  <Text fontSize="9px" fontWeight="800" color="purple.500">
+                                <Box>
+                                  <Text fontSize="9px" color="#A08B9B" fontWeight="700" mb="2px">DONE BY</Text>
+                                  <Text fontSize="9.5px" fontWeight="800" color="#8A6BD1">
                                     {(() => {
                                       const d = new Date();
                                       d.setMonth(d.getMonth() + parseInt(calc.months));
                                       return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
                                     })()}
                                   </Text>
-                                </VStack>
+                                </Box>
                               )}
-                            </HStack>
+                            </Box>
                           </Box>
                         </Box>
                       )}
@@ -729,9 +896,9 @@ const FinanceTracker = () => {
                   </Box>
                 );
               })}
-            </SimpleGrid>
+            </Box>
           )}
-        </VStack>
+        </Box>
       )}
     </Box>
   );

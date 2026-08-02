@@ -81,49 +81,41 @@ const CalendarWidget = ({ currentDate }: { currentDate: Date }) => {
   return (
     <Box
       bg="white"
-      borderRadius="3xl"
-      border="1.5px solid"
-      borderColor="pink.100"
-      boxShadow="0 8px 32px rgba(255, 182, 193, 0.18)"
+      borderRadius="24px"
+      border="2.5px solid"
+      borderColor="#EEDCFB"
+      boxShadow="0 6px 0 rgba(205,180,246,.35)"
       overflow="hidden"
     >
       {/* ── Gradient header ── */}
       <Box
-        bg="linear-gradient(135deg, #f9a8d4 0%, #c084fc 100%)"
-        px={6}
-        pt={5}
-        pb={6}
+        background="linear-gradient(135deg,#FFC2DA,#D9BFF7)"
+        px={5}
+        pt={4}
+        pb={4}
         position="relative"
         overflow="hidden"
       >
-        {/* decorative blobs */}
-        <Box position="absolute" top="-20px" right="-20px" w="100px" h="100px"
-          borderRadius="full" bg="whiteAlpha.100" />
-        <Box position="absolute" bottom="-30px" left="20px" w="80px" h="80px"
-          borderRadius="full" bg="whiteAlpha.100" />
-
         <HStack justify="space-between" align="center" position="relative">
           <HStack gap={3}>
             <Center
-              w="44px" h="44px" borderRadius="xl"
-              bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+              w="42px" h="42px" borderRadius="14px"
+              bg="rgba(255,255,255,.35)"
               flexShrink={0}
             >
               <Image src="/icons/Calendar.png" alt="Calendar" boxSize="26px" objectFit="contain" />
             </Center>
             <VStack align="start" gap={0}>
-              <Text fontSize="2xl" fontWeight="900" color="white"
-                letterSpacing="tight" lineHeight="1" textShadow="0 2px 8px rgba(0,0,0,0.15)">
-                {monthName}
+              <Text fontFamily="'Jersey 25', cursive" fontSize="24px" color="white" letterSpacing=".6px" textShadow="0 2px 0 rgba(196,87,127,.3)" lineHeight="1.1">
+                {monthName} {viewDate.getFullYear()}
               </Text>
-              <Text fontSize="sm" color="whiteAlpha.800" fontWeight="bold">
-                {viewDate.getFullYear()} · Sweet plans await ✨
+              <Text fontSize="10.5px" color="rgba(255,255,255,.9)" fontWeight="700">
+                Tap a day to add an event
               </Text>
             </VStack>
           </HStack>
 
-          <HStack bg="whiteAlpha.200" p="4px" borderRadius="full" gap={1}
-            border="1px solid" borderColor="whiteAlpha.300" backdropFilter="blur(8px)">
+          <HStack gap={1}>
             <IconButton aria-label="Prev" size="sm" variant="ghost"
               rounded="full" color="white" onClick={handlePrevMonth}
               _hover={{ bg: "whiteAlpha.300" }}>
@@ -138,11 +130,11 @@ const CalendarWidget = ({ currentDate }: { currentDate: Date }) => {
         </HStack>
 
         {/* Day-of-week row sitting on the gradient */}
-        <SimpleGrid columns={7} gap={1} mt={5}>
-          {DAY_LABELS.map((d, i) => (
+        <SimpleGrid columns={7} gap={1} mt={4}>
+          {DAY_LABELS.map((d) => (
             <Text key={d} fontSize="10px" fontWeight="800" textAlign="center"
-              textTransform="uppercase" letterSpacing="wide"
-              color={i === 0 || i === 6 ? "orange.100" : "whiteAlpha.800"}>
+              letterSpacing=".5px"
+              color="rgba(255,255,255,.85)">
               {d}
             </Text>
           ))}
@@ -181,10 +173,11 @@ const CalendarWidget = ({ currentDate }: { currentDate: Date }) => {
                 bg={isToday
                   ? "transparent"
                   : hasEvents
-                  ? "pink.50"
-                  : "transparent"}
+                  ? "#FFF9FC"
+                  : "#FFF9FC"}
+                border="1.5px solid"
+                borderColor={isToday ? "transparent" : "#F7EAF1"}
                 _hover={{
-                  bg: isToday ? "transparent" : "purple.50",
                   transform: "translateY(-2px)",
                 }}
                 gap="2px"
@@ -193,26 +186,24 @@ const CalendarWidget = ({ currentDate }: { currentDate: Date }) => {
                 {isToday && (
                   <Box
                     position="absolute"
-                    inset="2px"
-                    borderRadius="lg"
+                    inset="0"
+                    borderRadius="11px"
                     style={{
-                      background: "linear-gradient(135deg, #c084fc, #f472b6)",
-                      boxShadow: "0 4px 14px rgba(192,132,252,0.45)",
+                      background: "linear-gradient(135deg,#FFC2DA,#CDB4F6)",
                     }}
+                    border="1.5px solid white"
                   />
                 )}
 
                 <Text
-                  fontSize="sm"
-                  fontWeight={isToday || hasEvents ? "900" : "600"}
+                  fontSize="11.5px"
+                  fontWeight="700"
                   color={
                     isToday
                       ? "white"
-                      : hasEvents
-                      ? "pink.600"
                       : isWeekend
-                      ? "purple.400"
-                      : "gray.600"
+                      ? "#CDB4F6"
+                      : "#8A7690"
                   }
                   position="relative"
                   zIndex={1}
@@ -227,10 +218,10 @@ const CalendarWidget = ({ currentDate }: { currentDate: Date }) => {
                     {Array.from({ length: Math.min(eventCount, 3) }).map((_, i) => (
                       <Box
                         key={i}
-                        w="4px"
-                        h="4px"
+                        w="5px"
+                        h="5px"
                         borderRadius="full"
-                        bg={isToday ? "white" : ["pink.400", "purple.400", "orange.300"][i]}
+                        bg={isToday ? "white" : ["#F9A8CB", "#CDB4F6", "#BDE0FE"][i]}
                       />
                     ))}
                   </HStack>

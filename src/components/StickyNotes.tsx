@@ -65,39 +65,34 @@ const StickyNotes = ({ notes, setNotes }: Props) => {
   return (
     <Box
       bg="white"
-      borderRadius="3xl"
-      border="1.5px solid"
-      borderColor="pink.100"
-      boxShadow="0 8px 32px rgba(255,182,193,0.15)"
+      borderRadius="24px"
+      border="2.5px solid"
+      borderColor="#FFDDEB"
+      boxShadow="0 6px 0 rgba(255,199,222,.45)"
       overflow="hidden"
     >
       {/* ── Header ── */}
       <Box
-        bg="linear-gradient(135deg, #f9a8d4 0%, #c084fc 100%)"
-        px={6} pt={5} pb={5}
+        background="linear-gradient(135deg,#FFC2DA,#D9BFF7)"
+        px={5} pt={4} pb={4}
         position="relative"
         overflow="hidden"
       >
-        <Box position="absolute" top="-16px" right="-16px" w="80px" h="80px"
-          borderRadius="full" bg="whiteAlpha.100" />
-        <Box position="absolute" bottom="-20px" left="30px" w="56px" h="56px"
-          borderRadius="full" bg="whiteAlpha.100" />
-
         <HStack gap={3} position="relative">
           <Box
-            w="42px" h="42px" borderRadius="xl"
-            bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+            w="42px" h="42px" borderRadius="14px"
+            bg="rgba(255,255,255,.35)"
             display="flex" alignItems="center" justifyContent="center"
             flexShrink={0}
           >
             <Image src="/icons/StickyNote.png" alt="Notes" boxSize="24px" objectFit="contain" />
           </Box>
           <VStack align="start" gap={0}>
-            <Text fontSize="lg" fontWeight="900" color="white" lineHeight="1">
+            <Text fontFamily="'Jersey 25', cursive" fontSize="24px" color="white" letterSpacing=".6px" textShadow="0 2px 0 rgba(196,87,127,.3)" lineHeight="1.1">
               Sticky Notes
             </Text>
-            <Text fontSize="xs" color="whiteAlpha.800" fontWeight="bold">
-              {notes.length} {notes.length === 1 ? "note" : "notes"} pinned
+            <Text fontSize="10.5px" color="rgba(255,255,255,.9)" fontWeight="700">
+              Little reminders to self
             </Text>
           </VStack>
         </HStack>

@@ -1,12 +1,5 @@
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Image,
-  Separator,
-  SimpleGrid,
-} from "@chakra-ui/react";
+import { Box, Text, Image } from "@chakra-ui/react";
+import companionData from "../data/companions.json";
 
 interface Character {
   name: string;
@@ -23,178 +16,209 @@ interface Character {
   voiceLine: string;
 }
 
+// Same pastel gradient cycle used for the companion picker cards in Companions.tsx —
+// kept as a local copy here to avoid a circular import between the two files.
+const ACCENT_GRADIENTS = [
+  "linear-gradient(150deg,#FFF6FA 0%,#FFD9E8 45%,#E6D9FA 100%)",
+  "linear-gradient(150deg,#FFFDF6 0%,#DCEBFB 45%,#F3DDEC 100%)",
+  "linear-gradient(150deg,#FBF3FF 0%,#E6D9FA 45%,#CFE6F8 100%)",
+  "linear-gradient(150deg,#FFF9F0 0%,#FBE7CF 45%,#F6D8E6 100%)",
+  "linear-gradient(150deg,#F4FBFF 0%,#CFE6F8 45%,#E8DCF7 100%)",
+  "linear-gradient(150deg,#FFFFFF 0%,#F6E4EF 45%,#DDE7FA 100%)",
+];
+
+const WAVEFORM_COLORS = ["#F9A8CB", "#CDB4F6", "#BDE0FE", "#F9A8CB", "#CDB4F6"];
+const WAVEFORM_HEIGHTS = [8, 14, 10, 16, 7];
+
 const CharacterProfile = ({ char }: { char: Character }) => {
   const playVoice = () => {
     const audio = new Audio(char.voiceLine);
     audio.play().catch((err) => console.error("Audio play failed:", err));
   };
 
+  const index = companionData.characters.findIndex((c) => c.name === char.name);
+  const accentGradient = ACCENT_GRADIENTS[(index >= 0 ? index : 0) % ACCENT_GRADIENTS.length];
+
   return (
     <Box
       w="full"
       bg="white"
-      border="4px solid #F8BBD0"
-      rounded="3xl"
-      boxShadow="10px 10px 0px #FCE4EC"
-      p={8}
-      fontFamily="'VT323', monospace"
-      animation="soft-pop 0.3s ease-out"
+      border="2.5px solid #FFDDEB"
+      borderRadius="26px"
+      boxShadow="0 6px 0 rgba(255,199,222,.45)"
+      overflow="hidden"
     >
-      {/* Banner Ribbon */}
+      {/* Washi tape strip */}
       <Box
-        bg={char.accentColor}
-        border="3px solid white"
-        outline="3px solid #F8BBD0"
-        m="-15px -15px 30px -15px"
-        p={3}
-        rounded="xl"
-        textAlign="center"
-      >
-        <Text color="white" fontSize="4xl" textShadow="2px 2px #D81B60">
-          ✨ {char.nickname}'s Profile ✨
-        </Text>
-      </Box>
+        h="14px"
+        style={{
+          backgroundImage: "repeating-linear-gradient(90deg,#FFC2DA 0 18px,#FFF3D6 18px 36px)",
+        }}
+      />
 
-      <HStack
-        align="flex-start"
-        gap={10}
-        flexDir={{ base: "column", md: "row" }}
-      >
-        {/* Left Column: Image & Minigame */}
-        <VStack gap={5} minW="240px">
+      <Box display="flex" gap="24px" p="26px 30px 30px" alignItems="flex-start">
+        {/* Left: portrait + voice line */}
+        <Box
+          w="180px"
+          flexShrink={0}
+          p="16px"
+          borderRadius="22px"
+          background={accentGradient}
+          border="3px solid white"
+          boxShadow="0 6px 0 rgba(196,87,127,.15)"
+          textAlign="center"
+        >
+          <Image src={char.image} w="full" objectFit="contain" imageRendering="pixelated" />
+
           <Box
-            border="4px solid #F8BBD0"
-            p={3}
-            bg="white"
-            rounded="2xl"
-            boxShadow="0 8px 20px rgba(248, 187, 208, 0.4)"
-            position="relative"
-            className="sparkle-box"
+            as="button"
+            onClick={playVoice}
+            display="flex"
+            alignItems="center"
+            gap="8px"
+            mt="10px"
+            p="7px 10px"
+            w="full"
+            borderRadius="14px"
+            background="rgba(255,255,255,.85)"
+            boxShadow="0 3px 0 rgba(196,87,127,.12)"
+            cursor="pointer"
           >
             <Box
-              w="220px"
-              h="220px"
+              w="26px"
+              h="26px"
+              flexShrink={0}
+              borderRadius="999px"
+              background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
               display="flex"
               alignItems="center"
               justifyContent="center"
+              color="white"
+              fontSize="11px"
+              lineHeight="1"
             >
-              <Image
-                src={char.image}
-                maxW="100%"
-                maxH="100%"
-                objectFit="contain"
-                imageRendering="pixelated"
-              />
+              ▶
+            </Box>
+            <Box textAlign="left" flex="1" minW={0}>
+              <Text fontSize="8.5px" fontWeight="800" color="#C0577E" letterSpacing=".5px">
+                VOICE LINE
+              </Text>
+              <Box display="flex" alignItems="flex-end" gap="2px" h="14px" mt="2px">
+                {WAVEFORM_HEIGHTS.map((h, i) => (
+                  <Box
+                    key={i}
+                    w="3px"
+                    h={`${h}px`}
+                    borderRadius="2px"
+                    background={WAVEFORM_COLORS[i % WAVEFORM_COLORS.length]}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Right: info */}
+        <Box flex="1" minW={0}>
+          <Text fontFamily="'Jersey 25', cursive" fontSize="42px" color="#C0577E" lineHeight="1.1">
+            {char.name}
+          </Text>
+
+          <Box display="flex" gap="8px" mt="8px" flexWrap="wrap">
+            <Box px="10px" py="5px" borderRadius="999px" background="#FFF0F6" border="2px solid #FFDDEB">
+              <Text fontSize="8px" fontWeight="800" color="#C9A6D9" letterSpacing=".5px">
+                NICKNAME
+              </Text>
+              <Text fontSize="12px" fontWeight="700" color="#F27DAB">
+                {char.nickname}
+              </Text>
+            </Box>
+            <Box
+              px="10px"
+              py="5px"
+              borderRadius="999px"
+              background="#F6F0FF"
+              border="2px solid #EEDCFB"
+              display="flex"
+              alignItems="center"
+            >
+              <Text fontSize="12px" fontWeight="700" color="#8A6BD1">
+                {char.animal}
+              </Text>
+            </Box>
+            <Box
+              px="10px"
+              py="5px"
+              borderRadius="999px"
+              background="#F1F8FE"
+              border="2px solid #D8E9FB"
+              display="flex"
+              alignItems="center"
+            >
+              <Text fontSize="12px" fontWeight="700" color="#5B8FD6">
+                {char.role}
+              </Text>
             </Box>
           </Box>
 
-        </VStack>
-
-        {/* Right Column: Info Area */}
-        <VStack align="stretch" flex={1} gap={4}>
-          <Box>
-            <Text fontSize="4xl" color="#D81B60" fontWeight="bold">
-              {char.name}
+          <Box mt="16px" p="14px 18px" borderRadius="16px" background="#FFFBF0" border="2px solid #FBEFCF">
+            <Text fontSize="10px" fontWeight="800" letterSpacing="2px" color="#C99A3E">
+              FAVOURITE QUOTE
             </Text>
-            <Text fontSize="2xl" color="pink.400">
-              ❀ {char.role} ({char.animal})
-            </Text>
-          </Box>
-
-          <Separator
-            borderColor="#FCE4EC"
-            borderBottomWidth="4px"
-            rounded="full"
-          />
-
-          <VStack align="stretch" gap={2} fontSize="xl" color="gray.600">
-            <Text>
-              <b>Magic Power:</b> {char.specialSkill}
-            </Text>
-            <Text>
-              <b>Personality:</b> {char.personality}
-            </Text>
-          </VStack>
-
-          <SimpleGrid columns={2} gap={5} pt={2}>
-            <Box
-              bg="#E8F5E9"
-              p={4}
-              border="2px solid #C8E6C9"
-              rounded="2xl"
-              boxShadow="4px 4px 0px #C8E6C9"
-            >
-              <Text color="green.600" fontWeight="bold" fontSize="xl">
-                🌸 LIKES
-              </Text>
-              {char.likes.map((l) => (
-                <Text key={l}>♡ {l}</Text>
-              ))}
-            </Box>
-            <Box
-              bg="#FFF3E0"
-              p={4}
-              border="2px solid #FFE0B2"
-              rounded="2xl"
-              boxShadow="4px 4px 0px #FFE0B2"
-            >
-              <Text color="orange.600" fontWeight="bold" fontSize="xl">
-                ☁ DISLIKES
-              </Text>
-              {char.dislikes.map((d) => (
-                <Text key={d}>× {d}</Text>
-              ))}
-            </Box>
-          </SimpleGrid>
-
-          {/* Quote Section with Custom Sound Button */}
-          <HStack
-            mt={4}
-            p={5}
-            border="2px dashed #F48FB1"
-            bg="#FFF9FA"
-            rounded="xl"
-            justify="space-between"
-            align="center"
-          >
-            <Text
-              fontStyle="italic"
-              fontSize="2xl"
-              color="#C2185B"
-              flex={1}
-              pr={6} // Space between text and button
-            >
+            <Text fontSize="15px" fontWeight="700" fontStyle="italic" color="#5C4A63" mt="4px">
               "{char.favouriteQuote}"
             </Text>
+          </Box>
 
-            <Box
-              as="button"
-              onClick={playVoice}
-              bg={char.accentColor}
-              w="60px"
-              h="60px"
-              rounded="full"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              flexShrink={0} // Prevents button from squishing
-              border="3px solid white"
-              boxShadow="0 4px 0px #F8BBD0"
-              transition="0.2s all"
-              _hover={{ transform: "scale(1.1)" }}
-              _active={{ transform: "scale(0.9)", boxShadow: "none" }}
-            >
-              <Image
-                src="/SoundButton.png"
-                alt="Play"
-                w="35px"
-                h="35px"
-                objectFit="contain"
-              />
+          <Box display="grid" style={{ gridTemplateColumns: "1fr 1fr" }} gap="14px" mt="16px">
+            <Box p="14px" borderRadius="16px" background="#FFF9FC" border="2px solid #FFE9F1">
+              <Text fontSize="10px" fontWeight="800" color="#F27DAB" letterSpacing="1px" mb="6px">
+                LIKES ♡
+              </Text>
+              {char.likes.map((l) => (
+                <Text key={l} fontSize="12.5px" fontWeight="600" color="#5C4A63" mt="2px">
+                  <Text as="span" color="#F9A8CB">
+                    ♡
+                  </Text>{" "}
+                  {l}
+                </Text>
+              ))}
             </Box>
-          </HStack>
-        </VStack>
-      </HStack>
+            <Box p="14px" borderRadius="16px" background="#F8F7FC" border="2px solid #EEE7F6">
+              <Text fontSize="10px" fontWeight="800" color="#8A6BD1" letterSpacing="1px" mb="6px">
+                DISLIKES ✗
+              </Text>
+              {char.dislikes.map((d) => (
+                <Text key={d} fontSize="12.5px" fontWeight="600" color="#5C4A63" mt="2px">
+                  <Text as="span" color="#CDB4F6">
+                    ✗
+                  </Text>{" "}
+                  {d}
+                </Text>
+              ))}
+            </Box>
+          </Box>
+
+          <Box display="grid" style={{ gridTemplateColumns: "1fr 1fr" }} gap="14px" mt="14px">
+            <Box p="14px" borderRadius="16px" background="#F1F8FE" border="2px solid #D8E9FB">
+              <Text fontSize="10px" fontWeight="800" color="#5B8FD6" letterSpacing="1px" mb="4px">
+                PERSONALITY
+              </Text>
+              <Text fontSize="12.5px" fontWeight="700" color="#5C4A63">
+                {char.personality}
+              </Text>
+            </Box>
+            <Box p="14px" borderRadius="16px" background="#FFF0F6" border="2px solid #FFDDEB">
+              <Text fontSize="10px" fontWeight="800" color="#F27DAB" letterSpacing="1px" mb="4px">
+                SPECIAL SKILL
+              </Text>
+              <Text fontSize="12.5px" fontWeight="700" color="#5C4A63">
+                {char.specialSkill}
+              </Text>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };

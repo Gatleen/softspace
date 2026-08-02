@@ -40,47 +40,42 @@ const ProgressTracker = ({ tasks }: ProgressTrackerProps) => {
   return (
     <Box
       bg="white"
-      borderRadius="3xl"
-      border="1.5px solid"
-      borderColor="pink.100"
-      boxShadow="0 8px 32px rgba(255,182,193,0.15)"
+      borderRadius="24px"
+      border="2.5px solid"
+      borderColor="#FFDDEB"
+      boxShadow="0 6px 0 rgba(255,199,222,.45)"
       overflow="hidden"
     >
       {/* ── Gradient header ── */}
       <Box
-        bg="linear-gradient(135deg, #f9a8d4 0%, #c084fc 100%)"
-        px={6} pt={5} pb={5}
+        background="linear-gradient(135deg,#FFC2DA,#D9BFF7)"
+        px={5} pt={4} pb={4}
         position="relative"
         overflow="hidden"
       >
-        <Box position="absolute" top="-20px" right="-20px" w="90px" h="90px"
-          borderRadius="full" bg="whiteAlpha.100" />
-        <Box position="absolute" bottom="-30px" left="20px" w="70px" h="70px"
-          borderRadius="full" bg="whiteAlpha.100" />
-
         <HStack justify="space-between" position="relative">
           <HStack gap={3}>
             <Box
-              w="42px" h="42px" borderRadius="xl"
-              bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+              w="42px" h="42px" borderRadius="14px"
+              bg="rgba(255,255,255,.35)"
               display="flex" alignItems="center" justifyContent="center" flexShrink={0}
             >
               <Image src="/icons/Award.png" alt="Award" boxSize="26px" objectFit="contain" />
             </Box>
             <VStack align="start" gap={0}>
-              <Text fontSize="lg" fontWeight="900" color="white" lineHeight="1">
+              <Text fontFamily="'Jersey 25', cursive" fontSize="24px" color="white" letterSpacing=".6px" textShadow="0 2px 0 rgba(196,87,127,.3)" lineHeight="1.1">
                 Progress Tracker
               </Text>
-              <Text fontSize="xs" color="whiteAlpha.800" fontWeight="bold">
+              <Text fontSize="10.5px" color="rgba(255,255,255,.9)" fontWeight="700">
                 Lumi is cheering you on! 💕
               </Text>
             </VStack>
           </HStack>
           <Box
-            px={3} py={1} borderRadius="full"
-            bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+            px="12px" py="5px" borderRadius="999px"
+            bg="rgba(255,255,255,.4)"
           >
-            <Text fontSize="xs" fontWeight="800" color="white">
+            <Text fontSize="11px" fontWeight="800" color="white">
               {completed}/{total} done
             </Text>
           </Box>
@@ -164,14 +159,13 @@ const ProgressTracker = ({ tasks }: ProgressTrackerProps) => {
 
       {/* Motivational message */}
       <Box
-        mt={4} px={4} py={2} borderRadius="xl"
-        bg={isFinish ? "orange.50" : "pink.50"}
-        border="1px solid"
-        borderColor={isFinish ? "orange.100" : "pink.100"}
+        mt={4} px="16px" py="9px" borderRadius="14px"
+        bg="#FFF0F6"
+        border="1.5px solid #FFDDEB"
         textAlign="center"
       >
-        <Text fontSize="xs" fontWeight="800"
-          color={isFinish ? "orange.500" : "pink.400"} fontStyle="italic">
+        <Text fontSize="11.5px" fontWeight="800"
+          color="#F27DAB" fontStyle="italic">
           {isFinish
             ? "Lumi is so proud of your hard work! Stay sparkling! 🎀"
             : "Lumi is cheering you on every step of the way! 💕"}

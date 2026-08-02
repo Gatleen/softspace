@@ -1,21 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  SimpleGrid,
-  Image,
-  IconButton,
-  Center,
-  Button as ChakraButton,
-} from "@chakra-ui/react";
+import { Box, Image, Text } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 import {
   Heart,
   Brain,
   Dice5,
-  Home,
-  Sparkles,
   Coffee,
   Gift,
   Smile,
@@ -23,6 +12,117 @@ import {
   Edit3,
   Grid3x3,
 } from "lucide-react";
+import SoftSpaceCard from "./ui/SoftSpaceCard";
+import SectionHeader from "./ui/SectionHeader";
+
+// ─── SHARED PILL / BADGE HELPERS ─────────────────────────────────────────────
+// Small styling helpers reused across all four games so every game's footer
+// controls and stat readouts belong to the same visual family.
+
+const PillButton = ({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+}) => (
+  <Box
+    as="button"
+    onClick={disabled ? undefined : onClick}
+    px="22px"
+    py="10px"
+    borderRadius="999px"
+    border="2.5px solid white"
+    background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+    boxShadow="0 5px 0 rgba(196,87,127,.22)"
+    color="white"
+    fontFamily="'Jersey 25', cursive"
+    fontSize="16px"
+    letterSpacing=".4px"
+    cursor={disabled ? "default" : "pointer"}
+    opacity={disabled ? 0.55 : 1}
+    transition="transform .1s, box-shadow .1s"
+    _active={
+      disabled
+        ? {}
+        : { transform: "translateY(3px)", boxShadow: "0 2px 0 rgba(196,87,127,.22)" }
+    }
+  >
+    {children}
+  </Box>
+);
+
+const SecondaryPillButton = ({
+  children,
+  onClick,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+}) => (
+  <Box
+    as="button"
+    onClick={onClick}
+    px="20px"
+    py="9px"
+    borderRadius="999px"
+    background="#FFF0F6"
+    border="2px solid #FFDDEB"
+    color="#F27DAB"
+    fontFamily="'Jersey 25', cursive"
+    fontSize="16px"
+    cursor="pointer"
+    transition="transform .1s"
+    _active={{ transform: "translateY(2px)" }}
+  >
+    {children}
+  </Box>
+);
+
+/** Small "badge" style readout (e.g. "Moves: 4") rendered at the top of a game's body. */
+const StatPill = ({ children }: { children: ReactNode }) => (
+  <Box
+    px="12px"
+    py="5px"
+    borderRadius="999px"
+    bg="#FFF0F6"
+    border="1.5px solid #FFDDEB"
+    fontSize="11px"
+    fontWeight="800"
+    color="#C0577E"
+    whiteSpace="nowrap"
+  >
+    {children}
+  </Box>
+);
+
+/** Footer row: primary action(s) on the left, "Back to Arcade" on the right. */
+const GameFooter = ({
+  children,
+  onBack,
+}: {
+  children?: ReactNode;
+  onBack?: () => void;
+}) => (
+  <Box
+    display="flex"
+    flexWrap="wrap"
+    gap="10px"
+    justifyContent="center"
+    alignItems="center"
+    mt="16px"
+    pt="14px"
+    borderTop="2px dashed #FFE4EF"
+  >
+    {children}
+    {onBack && <SecondaryPillButton onClick={onBack}>Back to Arcade</SecondaryPillButton>}
+  </Box>
+);
+
+interface GameProps {
+  onBack?: () => void;
+}
 
 // ─── MEMORY MATCH ────────────────────────────────────────────────────────────
 // 🎨 CUSTOMIZE: Swap these with your own sticker images or emoji!
@@ -33,7 +133,7 @@ interface MemCard {
   emoji: string;
 }
 
-const MemoryMatch = () => {
+const MemoryMatch = ({ onBack }: GameProps) => {
   const [cards, setCards] = useState<MemCard[]>([]);
   const [flipped, setFlipped] = useState<number[]>([]);
   const [matched, setMatched] = useState<Set<number>>(new Set());
@@ -79,74 +179,60 @@ const MemoryMatch = () => {
   const won = matched.size === 16;
 
   return (
-    <VStack gap={4} w="full">
-      <HStack justify="space-between" w="full" px={2}>
-        <Text fontSize="sm" fontWeight="bold" color="pink.500">
-          Moves: {moves}
-        </Text>
-        <Text fontSize="sm" fontWeight="bold" color="purple.500">
-          Matched: {matched.size / 2} / 8
-        </Text>
-      </HStack>
+    <Box display="flex" flexDirection="column" gap="14px" w="full">
+      <Box display="flex" gap="8px" flexWrap="wrap">
+        <StatPill>Moves: {moves}</StatPill>
+        <StatPill>Matched: {matched.size / 2} / 8</StatPill>
+      </Box>
 
-      <SimpleGrid columns={4} gap={2} w="full">
+      <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap="12px" w="full">
         {cards.map((c, idx) => {
           const show = flipped.includes(idx) || matched.has(idx);
           return (
-            <Center
+            <Box
               key={idx}
+              as="button"
               onClick={() => flip(idx)}
-              h={{ base: "64px", md: "72px" }}
-              bg={show ? "white" : matched.has(idx) ? "green.50" : "pink.300"}
-              borderRadius="xl"
+              h="88px"
+              borderRadius="18px"
+              boxShadow="0 4px 0 rgba(255,199,222,.4)"
+              border={show ? "2.5px solid #FFDDEB" : "none"}
+              background={show ? "white" : "linear-gradient(135deg,#FFC2DA,#CDB4F6)"}
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
               cursor="pointer"
-              boxShadow={show ? "inner" : "0 4px 0 rgba(219,39,119,0.3)"}
-              border="3px solid"
-              borderColor={
-                matched.has(idx) ? "green.300" : show ? "pink.200" : "pink.400"
-              }
-              transition="all 0.25s"
-              fontSize="28px"
-              style={{ imageRendering: "pixelated" as React.CSSProperties["imageRendering"] }}
+              fontSize="34px"
+              transition="transform .15s"
+              _active={{ transform: "scale(.96)" }}
             >
               {show ? (
                 c.emoji
               ) : (
-                <Text color="white" fontWeight="900" fontSize="xl">
-                  ?
+                <Text color="white" fontSize="28px" lineHeight="1">
+                  ♡
                 </Text>
               )}
-            </Center>
+            </Box>
           );
         })}
-      </SimpleGrid>
+      </Box>
 
-      {won ? (
-        <VStack>
-          <Text fontWeight="bold" color="pink.500" fontSize="lg">
-            ✨ You matched them all!
-          </Text>
-          <ChakraButton
-            colorPalette="pink"
-            rounded="full"
-            size="sm"
-            onClick={init}
-          >
-            Play Again
-          </ChakraButton>
-        </VStack>
-      ) : (
-        <ChakraButton
-          colorPalette="pink"
-          variant="outline"
-          size="sm"
-          rounded="full"
-          onClick={init}
+      {won && (
+        <Text
+          fontFamily="'Jersey 25', cursive"
+          fontSize="20px"
+          color="#C0577E"
+          textAlign="center"
         >
-          Restart
-        </ChakraButton>
+          ✨ You matched them all!
+        </Text>
       )}
-    </VStack>
+
+      <GameFooter onBack={onBack}>
+        <PillButton onClick={init}>{won ? "Play Again" : "Restart"}</PillButton>
+      </GameFooter>
+    </Box>
   );
 };
 
@@ -190,7 +276,7 @@ const getCellNum = (gridRow: number, gridCol: number): number => {
   return rowFromBottom * 10 + col + 1;
 };
 
-const SnakeLadder = () => {
+const SnakeLadder = ({ onBack }: GameProps) => {
   // Position 0 = not yet on the board (before first move)
   const [pos, setPos] = useState<[number, number]>([0, 0]);
   const [turn, setTurn] = useState(0); // 0=player, 1=cpu/p2
@@ -284,23 +370,32 @@ const SnakeLadder = () => {
   };
 
   return (
-    <VStack gap={3} w="full">
+    <Box display="flex" flexDirection="column" gap="12px" w="full">
+      <Box display="flex" gap="8px" flexWrap="wrap">
+        <StatPill>
+          {PLAYER_TOKENS[0]} You: {pos[0] === 0 ? "off board" : `cell ${pos[0]}`}
+        </StatPill>
+        <StatPill>
+          {PLAYER_TOKENS[1]} {vsMode === "cpu" ? "CPU" : "P2"}:{" "}
+          {pos[1] === 0 ? "off board" : `cell ${pos[1]}`}
+        </StatPill>
+      </Box>
+
       {/*
         🎨 CUSTOMIZE BOARD:
         To use your own board image, add to the Box below:
           backgroundImage="url('/games/snakes-board.png')"
           backgroundSize="cover"
-        Then set cell bg to "transparent" in renderCell.
+        Then set cell bg to "transparent" in the map below.
       */}
       <Box
         display="grid"
         gridTemplateColumns="repeat(10, 1fr)"
         w="full"
-        border="3px solid"
-        borderColor="pink.300"
-        borderRadius="xl"
+        border="2px solid #FFDDEB"
+        borderRadius="18px"
         overflow="hidden"
-        boxShadow="lg"
+        boxShadow="0 4px 0 rgba(255,199,222,.4)"
       >
         {Array.from({ length: 10 }, (_, r) =>
           Array.from({ length: 10 }, (_, c) => {
@@ -310,17 +405,16 @@ const SnakeLadder = () => {
             const p0Here = pos[0] === n;
             const p1Here = pos[1] === n;
 
-            let bg = n % 2 === 0 ? "#fce4ec" : "#fdd8e5";
-            if (snake) bg = "#ffcdd2";
-            if (ladder) bg = "#dcedc8";
-            if (n === 100) bg = "#fff9c4";
+            let bg = n % 2 === 0 ? "#FFF6FA" : "#FFFBF5";
+            if (snake) bg = "#FFDDEB";
+            if (ladder) bg = "#EEDCFB";
+            if (n === 100) bg = "#D8E9FB";
 
             return (
               <Box
                 key={n}
                 bg={bg}
-                border="1px solid"
-                borderColor="pink.100"
+                border="1px solid rgba(255,221,235,.6)"
                 display="flex"
                 flexDirection="column"
                 alignItems="center"
@@ -328,39 +422,29 @@ const SnakeLadder = () => {
                 position="relative"
                 style={{ aspectRatio: "1" }}
               >
-                <Text
-                  fontSize={{ base: "6px", sm: "7px", md: "9px" }}
-                  color="gray.400"
-                  fontWeight="bold"
-                  lineHeight="1.2"
-                >
+                <Text fontSize="7px" color="#C2AECF" fontWeight="bold" lineHeight="1.2">
                   {n}
                 </Text>
                 {n === 100 && (
-                  <Text fontSize={{ base: "10px", md: "13px" }} lineHeight="1">
+                  <Text fontSize="12px" lineHeight="1">
                     🏆
                   </Text>
                 )}
                 {snake && (
-                  <Text fontSize={{ base: "10px", md: "13px" }} lineHeight="1">
+                  <Text fontSize="12px" lineHeight="1">
                     🐍
                   </Text>
                 )}
                 {ladder && (
-                  <Text fontSize={{ base: "10px", md: "13px" }} lineHeight="1">
+                  <Text fontSize="12px" lineHeight="1">
                     🪜
                   </Text>
                 )}
                 {(p0Here || p1Here) && (
-                  <HStack
-                    position="absolute"
-                    bottom="0px"
-                    gap="0px"
-                    fontSize={{ base: "10px", md: "14px" }}
-                  >
+                  <Box position="absolute" bottom="0px" display="flex" fontSize="13px">
                     {p0Here && <Text lineHeight="1">{PLAYER_TOKENS[0]}</Text>}
                     {p1Here && <Text lineHeight="1">{PLAYER_TOKENS[1]}</Text>}
-                  </HStack>
+                  </Box>
                 )}
               </Box>
             );
@@ -368,67 +452,45 @@ const SnakeLadder = () => {
         )}
       </Box>
 
-      {/* Positions + Dice */}
-      <HStack w="full" justify="space-between" align="center">
-        <VStack gap={0} align="start">
-          <Text fontSize="xs" fontWeight="bold" color="pink.500">
-            {PLAYER_TOKENS[0]} You:{" "}
-            {pos[0] === 0 ? "off board" : `cell ${pos[0]}`}
-          </Text>
-          <Text fontSize="xs" fontWeight="bold" color="purple.500">
-            {PLAYER_TOKENS[1]} {vsMode === "cpu" ? "CPU" : "P2"}:{" "}
-            {pos[1] === 0 ? "off board" : `cell ${pos[1]}`}
-          </Text>
-        </VStack>
-
-        {/* Dice — click to roll */}
-        <Center
+      {/* Dice */}
+      <Box display="flex" justifyContent="center">
+        <Box
+          as="button"
+          onClick={handleRoll}
           w="56px"
           h="56px"
           bg="white"
-          border="3px solid"
-          borderColor={
-            rolling ? "yellow.400" : turn === 0 ? "pink.300" : "purple.300"
-          }
-          borderRadius="xl"
-          fontSize="28px"
-          cursor={
-            winner !== null || (vsMode === "cpu" && turn === 1)
-              ? "default"
-              : "pointer"
-          }
-          onClick={handleRoll}
-          boxShadow="0 4px 0 rgba(0,0,0,0.1)"
-          transition="transform 0.1s, box-shadow 0.1s"
-          _active={{ transform: "translateY(3px)", boxShadow: "none" }}
+          border="2.5px solid"
+          borderColor={turn === 0 ? "#FFC2DA" : "#CDB4F6"}
+          borderRadius="16px"
+          fontSize="26px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          cursor={winner !== null || (vsMode === "cpu" && turn === 1) ? "default" : "pointer"}
+          boxShadow="0 4px 0 rgba(196,87,127,.25)"
+          transition="transform .1s"
+          _active={{ transform: "translateY(3px)" }}
           userSelect="none"
         >
           {DICE_FACES[dice - 1]}
-        </Center>
-      </HStack>
+        </Box>
+      </Box>
 
       {/* Turn status */}
       <Box
         w="full"
-        p={2}
-        px={3}
-        bg="white"
-        borderRadius="xl"
+        px="14px"
+        py="10px"
+        bg={turn === 0 ? "#FFF0F6" : "#F6F0FF"}
+        borderRadius="14px"
         borderLeft="4px solid"
-        borderColor={turn === 0 ? "pink.300" : "purple.300"}
+        borderColor={turn === 0 ? "#F9A8CB" : "#CDB4F6"}
       >
-        <Text
-          fontSize="sm"
-          fontWeight="bold"
-          color={turn === 0 ? "pink.500" : "purple.500"}
-        >
+        <Text fontSize="13px" fontWeight="700" color={turn === 0 ? "#C0577E" : "#7A5AA6"}>
           {winner !== null
             ? `🎉 ${
-                winner === 0
-                  ? "You win!"
-                  : vsMode === "cpu"
-                  ? "CPU wins!"
-                  : "P2 wins!"
+                winner === 0 ? "You win!" : vsMode === "cpu" ? "CPU wins!" : "P2 wins!"
               }`
             : turn === 0
             ? "Your turn — click the dice! 🎲"
@@ -439,49 +501,40 @@ const SnakeLadder = () => {
       </Box>
 
       {/* Move log */}
-      <Box w="full" maxH="72px" overflowY="auto" bg="white" borderRadius="xl" p={2}>
+      <Box
+        w="full"
+        maxH="72px"
+        overflowY="auto"
+        bg="#FFFBF5"
+        border="1.5px solid #FFDDEB"
+        borderRadius="14px"
+        p="10px"
+      >
         {log.length === 0 ? (
-          <Text fontSize="xs" color="gray.400" fontStyle="italic">
+          <Text fontSize="11.5px" color="#A08B9B" fontStyle="italic">
             Roll the dice to start!
           </Text>
         ) : (
           log.map((entry, i) => (
-            <Text
-              key={i}
-              fontSize="xs"
-              color={i === 0 ? "gray.700" : "gray.400"}
-            >
+            <Text key={i} fontSize="11.5px" color={i === 0 ? "#5C4A63" : "#C2AECF"}>
               {entry}
             </Text>
           ))
         )}
       </Box>
 
-      {/* Controls */}
-      <HStack w="full" gap={2}>
-        <ChakraButton
-          size="sm"
-          colorPalette="purple"
-          variant="outline"
-          flex={1}
+      <GameFooter onBack={onBack}>
+        <SecondaryPillButton
           onClick={() => {
             setVsMode((v) => (v === "cpu" ? "2p" : "cpu"));
             reset();
           }}
         >
           Mode: {vsMode === "cpu" ? "vs CPU" : "2 Players"}
-        </ChakraButton>
-        <ChakraButton
-          size="sm"
-          colorPalette="pink"
-          variant="outline"
-          flex={1}
-          onClick={reset}
-        >
-          Restart
-        </ChakraButton>
-      </HStack>
-    </VStack>
+        </SecondaryPillButton>
+        <PillButton onClick={reset}>Restart</PillButton>
+      </GameFooter>
+    </Box>
   );
 };
 
@@ -532,7 +585,7 @@ const getBestMove = (b: TTTBoard): number => {
   return move;
 };
 
-const TicTacToe = () => {
+const TicTacToe = ({ onBack }: GameProps) => {
   const [board, setBoard] = useState<TTTBoard>(Array(9).fill(null));
   const [playerTurn, setPlayerTurn] = useState(true); // true = player (X)
   const [vsMode, setVsMode] = useState<"cpu" | "2p">("cpu");
@@ -600,176 +653,127 @@ const TicTacToe = () => {
     return playerTurn ? "X's turn (✕)" : "O's turn (○)";
   };
 
+  const statusColor =
+    result === "X" ? "#F27DAB" : result === "O" ? "#8A6BD1" : "#5C4A63";
+  const statusBorder =
+    result === "X" ? "#F9A8CB" : result === "O" ? "#CDB4F6" : result === "draw" ? "#C2AECF" : playerTurn ? "#F9A8CB" : "#CDB4F6";
+
   return (
-    <VStack gap={4} w="full" align="center">
+    <Box display="flex" flexDirection="column" gap="14px" w="full" alignItems="center">
       {/* Score bar */}
-      <HStack
+      <Box
         w="full"
-        justify="space-between"
-        bg="white"
-        borderRadius="2xl"
-        p={3}
-        boxShadow="sm"
+        display="flex"
+        justifyContent="space-between"
+        gap="10px"
+        bg="#FFFBF5"
+        border="2px solid #FFDDEB"
+        borderRadius="18px"
+        p="12px"
       >
-        <VStack gap={0}>
-          <Text fontSize="xs" color="gray.400" fontWeight="bold">
+        <Box flex="1" display="flex" flexDirection="column" alignItems="center" gap="2px" bg="#FFF0F6" borderRadius="14px" py="8px">
+          <Text fontSize="10px" color="#A08B9B" fontWeight="800">
             {vsMode === "cpu" ? "YOU" : "X"}
           </Text>
-          <Text fontSize="2xl" fontWeight="900" color="pink.500" lineHeight="1">
+          <Text fontFamily="'Jersey 25', cursive" fontSize="28px" color="#F27DAB" lineHeight="1">
             {scores.X}
           </Text>
-        </VStack>
-        <VStack gap={0}>
-          <Text fontSize="xs" color="gray.400" fontWeight="bold">DRAW</Text>
-          <Text fontSize="2xl" fontWeight="900" color="gray.400" lineHeight="1">
+        </Box>
+        <Box flex="1" display="flex" flexDirection="column" alignItems="center" gap="2px" bg="white" borderRadius="14px" py="8px">
+          <Text fontSize="10px" color="#A08B9B" fontWeight="800">
+            DRAW
+          </Text>
+          <Text fontFamily="'Jersey 25', cursive" fontSize="28px" color="#A08B9B" lineHeight="1">
             {scores.draw}
           </Text>
-        </VStack>
-        <VStack gap={0}>
-          <Text fontSize="xs" color="gray.400" fontWeight="bold">
+        </Box>
+        <Box flex="1" display="flex" flexDirection="column" alignItems="center" gap="2px" bg="#F6F0FF" borderRadius="14px" py="8px">
+          <Text fontSize="10px" color="#A08B9B" fontWeight="800">
             {vsMode === "cpu" ? "CPU" : "O"}
           </Text>
-          <Text fontSize="2xl" fontWeight="900" color="purple.500" lineHeight="1">
+          <Text fontFamily="'Jersey 25', cursive" fontSize="28px" color="#8A6BD1" lineHeight="1">
             {scores.O}
           </Text>
-        </VStack>
-      </HStack>
+        </Box>
+      </Box>
 
       {/* Board */}
       <Box
         display="grid"
         gridTemplateColumns="repeat(3, 1fr)"
         gap="10px"
-        p={4}
-        bg="pink.50"
-        borderRadius="3xl"
-        boxShadow="inner"
+        p="14px"
+        bg="#FFFBF5"
+        border="2px solid #FFDDEB"
+        borderRadius="20px"
       >
         {board.map((cell, i) => {
           const isWin = winCells.includes(i);
           return (
-            <Center
+            <Box
               key={i}
+              as="button"
               onClick={() => handleClick(i)}
-              w={{ base: "88px", md: "100px" }}
-              h={{ base: "88px", md: "100px" }}
-              bg={isWin ? (cell === "X" ? "pink.100" : "purple.100") : "white"}
-              borderRadius="2xl"
+              w="96px"
+              h="96px"
+              bg={isWin ? (cell === "X" ? "#FFDDEB" : "#EEDCFB") : "white"}
+              borderRadius="16px"
               cursor={cell || result ? "default" : "pointer"}
-              border="3px solid"
-              borderColor={
-                isWin
-                  ? cell === "X"
-                    ? "pink.400"
-                    : "purple.400"
-                  : "pink.100"
-              }
-              boxShadow={isWin ? "none" : "0 4px 0 rgba(0,0,0,0.06)"}
-              transition="all 0.15s"
-              _hover={
-                !cell && !result
-                  ? { transform: "translateY(-2px)", borderColor: "pink.300" }
-                  : {}
-              }
+              border="2.5px solid"
+              borderColor={isWin ? (cell === "X" ? "#F27DAB" : "#8A6BD1") : "#FFDDEB"}
+              boxShadow="0 4px 0 rgba(255,199,222,.4)"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              transition="transform .1s"
+              _active={{ transform: !cell && !result ? "translateY(2px)" : "none" }}
             >
               {cell === "X" && (
-                <Text
-                  fontSize="3xl"
-                  fontWeight="900"
-                  color="pink.500"
-                  lineHeight="1"
-                  style={{ fontFamily: "monospace" }}
-                >
+                <Text fontFamily="'Jersey 25', cursive" fontSize="44px" color="#F27DAB" lineHeight="1">
                   ✕
                 </Text>
               )}
               {cell === "O" && (
-                <Text
-                  fontSize="3xl"
-                  fontWeight="900"
-                  color="purple.500"
-                  lineHeight="1"
-                  style={{ fontFamily: "monospace" }}
-                >
+                <Text fontFamily="'Jersey 25', cursive" fontSize="44px" color="#8A6BD1" lineHeight="1">
                   ○
                 </Text>
               )}
-            </Center>
+            </Box>
           );
         })}
       </Box>
 
       {/* Status */}
       <Box
-        px={4}
-        py={2}
-        bg="white"
-        borderRadius="full"
+        px="16px"
+        py="9px"
+        bg="#FFF0F6"
+        borderRadius="999px"
         borderLeft="4px solid"
-        borderColor={
-          result === "X"
-            ? "pink.400"
-            : result === "O"
-            ? "purple.400"
-            : result === "draw"
-            ? "gray.300"
-            : playerTurn
-            ? "pink.300"
-            : "purple.300"
-        }
+        borderColor={statusBorder}
         w="full"
       >
-        <Text
-          fontWeight="bold"
-          fontSize="sm"
-          color={
-            result === "X"
-              ? "pink.500"
-              : result === "O"
-              ? "purple.500"
-              : "gray.600"
-          }
-        >
+        <Text fontWeight="700" fontSize="13px" color={statusColor}>
           {statusMsg()}
         </Text>
       </Box>
 
-      {/* Controls */}
-      <HStack w="full" gap={2}>
-        <ChakraButton
-          size="sm"
-          colorPalette="purple"
-          variant="outline"
-          flex={1}
+      <GameFooter onBack={onBack}>
+        <SecondaryPillButton
           onClick={() => {
             setVsMode((v) => (v === "cpu" ? "2p" : "cpu"));
             reset(false);
           }}
         >
           Mode: {vsMode === "cpu" ? "vs CPU" : "2 Players"}
-        </ChakraButton>
+        </SecondaryPillButton>
         {result ? (
-          <ChakraButton
-            size="sm"
-            colorPalette="pink"
-            flex={1}
-            onClick={() => reset(true)}
-          >
-            Next Round
-          </ChakraButton>
+          <PillButton onClick={() => reset(true)}>Next Round</PillButton>
         ) : (
-          <ChakraButton
-            size="sm"
-            colorPalette="pink"
-            variant="outline"
-            flex={1}
-            onClick={() => reset(false)}
-          >
-            Restart
-          </ChakraButton>
+          <PillButton onClick={() => reset(false)}>Restart</PillButton>
         )}
-      </HStack>
-    </VStack>
+      </GameFooter>
+    </Box>
   );
 };
 
@@ -779,14 +783,14 @@ interface Prompt {
   icon: React.ReactNode;
 }
 
-const JournalingDice = () => {
+const JournalingDice = ({ onBack }: GameProps) => {
   const prompts: Prompt[] = [
-    { text: "Draw your current mood as a pixel character", icon: <Edit3 /> },
-    { text: "Write 3 small wins from today", icon: <Heart /> },
-    { text: "Write a love letter to your future self", icon: <Gift /> },
-    { text: "What is one thing that made you smile today?", icon: <Smile /> },
-    { text: "Reflect on one thing you're proud of", icon: <BookOpen /> },
-    { text: "Describe your ideal cozy corner", icon: <Coffee /> },
+    { text: "Draw your current mood as a pixel character", icon: <Edit3 size={16} /> },
+    { text: "Write 3 small wins from today", icon: <Heart size={16} /> },
+    { text: "Write a love letter to your future self", icon: <Gift size={16} /> },
+    { text: "What is one thing that made you smile today?", icon: <Smile size={16} /> },
+    { text: "Reflect on one thing you're proud of", icon: <BookOpen size={16} /> },
+    { text: "Describe your ideal cozy corner", icon: <Coffee size={16} /> },
   ];
 
   const [prompt, setPrompt] = useState<Prompt | null>(null);
@@ -801,236 +805,253 @@ const JournalingDice = () => {
   };
 
   return (
-    <VStack gap={8} py={4} w="full">
-      <Center
+    <Box display="flex" flexDirection="column" alignItems="center" gap="20px" py="8px" w="full">
+      <Box
+        as="button"
         onClick={roll}
         w="120px"
         h="120px"
         bg="white"
-        border="8px solid"
-        borderColor="pink.100"
-        borderRadius="3xl"
-        boxShadow="2xl"
+        border="3px solid #FFDDEB"
+        borderRadius="28px"
+        boxShadow="0 6px 0 rgba(255,199,222,.45)"
         cursor="pointer"
-        transition="all 0.2s"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        transition="transform .2s"
         className={rolling ? "animate-bounce" : ""}
-        _hover={{ transform: "rotate(12deg)" }}
+        _hover={{ transform: "rotate(10deg)" }}
       >
-        <Dice5 size={64} color="#fbb6ce" />
-      </Center>
+        <Dice5 size={60} color="#F9A8CB" />
+      </Box>
 
       {prompt && !rolling ? (
         <Box
           bg="white"
-          p={6}
-          borderRadius="2xl"
-          boxShadow="xl"
-          borderLeft="8px solid"
-          borderColor="pink.400"
+          border="2.5px solid #FFDDEB"
+          borderRadius="20px"
+          boxShadow="0 4px 0 rgba(255,199,222,.4)"
+          p="18px 20px"
           w="full"
         >
-          <HStack color="pink.500" fontWeight="bold" mb={2}>
+          <Box display="flex" alignItems="center" gap="8px" color="#C0577E" mb="8px">
             {prompt.icon}
-            <Text>Prompt of the Day</Text>
-          </HStack>
-          <Text color="gray.700" fontWeight="medium">
+            <Text fontFamily="'Jersey 25', cursive" fontSize="16px" letterSpacing=".3px">
+              Prompt of the Day
+            </Text>
+          </Box>
+          <Text color="#5C4A63" fontSize="14px" fontWeight="600">
             {prompt.text}
           </Text>
         </Box>
       ) : (
         !rolling && (
-          <VStack textAlign="center">
-            <Text color="pink.400" fontWeight="bold">
+          <Box textAlign="center">
+            <Text color="#C0577E" fontWeight="700" fontSize="14px">
               Ready to reflect?
             </Text>
-            <Text fontSize="sm" color="gray.400" fontStyle="italic">
+            <Text fontSize="12px" color="#A08B9B" fontStyle="italic">
               Click the dice to find your prompt.
             </Text>
-          </VStack>
+          </Box>
         )
       )}
-    </VStack>
+
+      <GameFooter onBack={onBack}>
+        {prompt && !rolling && <PillButton onClick={roll}>Roll Again</PillButton>}
+      </GameFooter>
+    </Box>
   );
 };
 
 // ─── GAMES HUB ───────────────────────────────────────────────────────────────
+interface GameMeta {
+  id: string;
+  name: string;
+  desc: string;
+  icon: React.ReactNode;
+  bg: string;
+  border: string;
+  iconColor: string;
+}
+
+const GAMES: GameMeta[] = [
+  {
+    id: "memory",
+    name: "Sticker Match",
+    desc: "Flip & match all 8 pairs",
+    icon: <Brain size={26} />,
+    bg: "#FFF0F6",
+    border: "#FFDDEB",
+    iconColor: "#F27DAB",
+  },
+  {
+    id: "snakeladder",
+    name: "Snake & Ladder",
+    desc: "Climb ladders, dodge snakes",
+    icon: <Dice5 size={26} />,
+    bg: "#F6F0FF",
+    border: "#EEDCFB",
+    iconColor: "#8A6BD1",
+  },
+  {
+    id: "tictactoe",
+    name: "Tic Tac Toe",
+    desc: "Beat the unbeatable CPU… if you can",
+    icon: <Grid3x3 size={26} />,
+    bg: "#F1F8FE",
+    border: "#D8E9FB",
+    iconColor: "#5B8FD6",
+  },
+  {
+    id: "dice",
+    name: "Journaling Dice",
+    desc: "Roll for a writing prompt",
+    icon: <Edit3 size={26} />,
+    bg: "#FFFBF5",
+    border: "#FFDDEB",
+    iconColor: "#C0577E",
+  },
+];
+
 export default function Games() {
-  const [view, setView] = useState("hub");
+  const [selected, setSelected] = useState<string | null>(null);
+  const active = GAMES.find((g) => g.id === selected) ?? null;
 
-  const games = [
-    {
-      id: "memory",
-      name: "Sticker Match",
-      desc: "Flip & match all 8 pairs",
-      icon: <Brain />,
-    },
-    {
-      id: "snakeladder",
-      name: "Snake & Ladder",
-      desc: "Climb ladders, dodge snakes",
-      icon: <Dice5 />,
-    },
-    {
-      id: "tictactoe",
-      name: "Tic Tac Toe",
-      desc: "Beat the unbeatable CPU… if you can",
-      icon: <Grid3x3 />,
-    },
-    {
-      id: "dice",
-      name: "Journaling Dice",
-      desc: "Roll for a writing prompt",
-      icon: <Edit3 />,
-    },
-  ];
-
-  const renderView = () => {
-    switch (view) {
+  const renderGame = () => {
+    switch (selected) {
       case "memory":
-        return <MemoryMatch />;
+        return <MemoryMatch onBack={() => setSelected(null)} />;
       case "snakeladder":
-        return <SnakeLadder />;
+        return <SnakeLadder onBack={() => setSelected(null)} />;
       case "tictactoe":
-        return <TicTacToe />;
+        return <TicTacToe onBack={() => setSelected(null)} />;
       case "dice":
-        return <JournalingDice />;
+        return <JournalingDice onBack={() => setSelected(null)} />;
       default:
-        return (
-          <VStack gap={4} w="full">
-            <VStack mb={2}>
-              <Image
-                src="/llama.png"
-                alt="Mascot"
-                w="80px"
-                h="80px"
-                objectFit="contain"
-              />
-              <Text
-                color="gray.500"
-                fontStyle="italic"
-                fontSize="sm"
-                textAlign="center"
-                px={4}
-              >
-                Welcome to the Cozy Arcade!
-                <br />
-                Pick a game to play. ✨
-              </Text>
-            </VStack>
-            {games.map((g) => (
-              <HStack
-                key={g.id}
-                as="button"
-                onClick={() => setView(g.id)}
-                w="full"
-                p={5}
-                bg="white"
-                borderRadius="3xl"
-                shadow="lg"
-                borderBottom="6px solid"
-                borderColor="blackAlpha.50"
-                transition="transform 0.2s"
-                _hover={{ transform: "scale(1.02)" }}
-              >
-                <Center
-                  p={3}
-                  borderRadius="2xl"
-                  bg="pink.50"
-                  color="pink.400"
-                  flexShrink={0}
-                >
-                  {g.icon}
-                </Center>
-                <VStack align="start" gap={0}>
-                  <Text fontWeight="bold" fontSize="lg" color="gray.600">
-                    {g.name}
-                  </Text>
-                  <Text fontSize="xs" color="pink.300" fontWeight="bold">
-                    {g.desc}
-                  </Text>
-                </VStack>
-              </HStack>
-            ))}
-          </VStack>
-        );
+        return null;
     }
   };
 
   return (
-    <Box
-      minH="100vh"
-      p={4}
-      bg="#fff5f7"
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-    >
-      {/* Header */}
-      <HStack w="full" maxW="lg" mb={6} justify="space-between">
-        <HStack gap={3}>
-          <Center p={2} bg="pink.300" borderRadius="xl" shadow="lg">
-            <Heart color="white" fill="white" />
-          </Center>
-          <Box>
+    <Box>
+      <SectionHeader title="Cozy Arcade" meta="Pick a game to play" />
+
+      <Box display="flex" gap="22px" alignItems="flex-start">
+        {/* Left: welcome card + game picker */}
+        <Box width="420px" flexShrink={0} display="flex" flexDirection="column" gap="14px">
+          <Box
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            gap="8px"
+            padding="18px"
+            borderRadius="24px"
+            bg="white"
+            border="2.5px solid #FFDDEB"
+            boxShadow="0 6px 0 rgba(255,199,222,.45)"
+          >
+            <Image src="/Llama1.png" alt="Mascot" boxSize="84px" objectFit="contain" />
             <Text
-              fontSize="2xl"
-              fontWeight="900"
-              color="pink.600"
-              lineHeight="1"
+              fontSize="13px"
+              fontWeight="700"
+              fontStyle="italic"
+              color="#A08B9B"
+              textAlign="center"
             >
-              {view === "hub"
-                ? "Cozy Arcade"
-                : games.find((g) => g.id === view)?.name ?? ""}
-            </Text>
-            <Text
-              fontSize="10px"
-              fontWeight="bold"
-              color="pink.400"
-              textTransform="uppercase"
-              letterSpacing="widest"
-            >
-              A Pixelated Self-Care Zone
+              Welcome to the Cozy Arcade! Pick a game to play.
             </Text>
           </Box>
-        </HStack>
-        {view !== "hub" && (
-          <IconButton
-            aria-label="home"
-            onClick={() => setView("hub")}
-            variant="ghost"
-            bg="white"
-            borderRadius="full"
-            shadow="md"
-            color="pink.400"
-          >
-            <Home size={20} />
-          </IconButton>
-        )}
-      </HStack>
 
-      {/* Game area */}
-      <Box
-        w="full"
-        maxW="lg"
-        bg="rgba(255,183,197,0.15)"
-        borderRadius="3xl"
-        p={{ base: 4, md: 6 }}
-        shadow="2xl"
-        backdropFilter="blur(10px)"
-        border="4px solid white"
-        minH="500px"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-      >
-        {renderView()}
+          {GAMES.map((g) => {
+            const isActive = g.id === selected;
+            return (
+              <Box
+                key={g.id}
+                as="button"
+                onClick={() => setSelected(g.id)}
+                display="flex"
+                alignItems="center"
+                gap="14px"
+                padding="14px 16px"
+                borderRadius="20px"
+                bg={g.bg}
+                border={isActive ? "2.5px solid #F27DAB" : `2.5px solid ${g.border}`}
+                boxShadow="0 5px 0 rgba(255,199,222,.35)"
+                textAlign="left"
+                cursor="pointer"
+                transition="transform .12s"
+                _hover={{ transform: "translateY(-1px)" }}
+              >
+                <Box
+                  w="54px"
+                  h="54px"
+                  borderRadius="16px"
+                  bg="white"
+                  border="2px solid rgba(255,255,255,.9)"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  flexShrink={0}
+                  color={g.iconColor}
+                >
+                  {g.icon}
+                </Box>
+                <Box flex="1" minW={0}>
+                  <Text
+                    fontFamily="'Jersey 25', cursive"
+                    fontSize="25px"
+                    color="#C0577E"
+                    lineHeight="1.15"
+                    letterSpacing=".3px"
+                  >
+                    {g.name}
+                  </Text>
+                  <Text fontSize="11.5px" fontWeight="600" color="#A08B9B">
+                    {g.desc}
+                  </Text>
+                </Box>
+                <Text fontSize="20px" color="#F9A8CB" flexShrink={0}>
+                  ›
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+
+        {/* Right: active game / placeholder */}
+        <Box flex="1" minW={0}>
+          {active ? (
+            <SoftSpaceCard title={active.name} subtitle={active.desc}>
+              {renderGame()}
+            </SoftSpaceCard>
+          ) : (
+            <SoftSpaceCard headerless bodyPadding="48px 24px">
+              <Box display="flex" flexDirection="column" alignItems="center" gap="10px">
+                <Image src="/Llama1.png" alt="Mascot" boxSize="72px" objectFit="contain" />
+                <Text
+                  fontFamily="'Jersey 25', cursive"
+                  fontSize="22px"
+                  color="#C0577E"
+                  textAlign="center"
+                >
+                  Pick a game to get started!
+                </Text>
+                <Text
+                  fontSize="12.5px"
+                  fontWeight="600"
+                  fontStyle="italic"
+                  color="#A08B9B"
+                  textAlign="center"
+                >
+                  Choose from the list on the left ✨
+                </Text>
+              </Box>
+            </SoftSpaceCard>
+          )}
+        </Box>
       </Box>
-
-      <HStack mt={6} gap={2} color="pink.300" fontWeight="bold">
-        <Sparkles size={16} />
-        <Text fontSize="sm">Your daily dose of calm</Text>
-        <Sparkles size={16} />
-      </HStack>
 
       <style
         dangerouslySetInnerHTML={{

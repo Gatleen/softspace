@@ -10,6 +10,8 @@ const MESSAGES = [
   "Welcome home ✨",
 ];
 
+const JERSEY = "'Jersey 25', cursive";
+
 interface Props {
   onComplete: () => void;
 }
@@ -53,7 +55,7 @@ const LoadingScreen = ({ onComplete }: Props) => {
     <Box
       position="fixed"
       inset="0"
-      bg="linear-gradient(to bottom right, #ABA7E3, #A677CA, #4525A2)"
+      background="linear-gradient(160deg,#E7DEFB 0%,#F6E3F1 45%,#FFF1F7 100%)"
       display="flex"
       alignItems="center"
       justifyContent="center"
@@ -62,141 +64,109 @@ const LoadingScreen = ({ onComplete }: Props) => {
       transition="opacity 0.5s ease"
       overflow="hidden"
     >
-      {/* Floating pixel stars */}
-      <style>{`
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50%       { transform: translateY(-18px) rotate(12deg); }
-        }
-        @keyframes float-med {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50%       { transform: translateY(-12px) rotate(-8deg); }
-        }
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.2; transform: scale(0.8); }
-          50%       { opacity: 1;   transform: scale(1.2); }
-        }
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position:  200% center; }
-        }
-        @keyframes bounce-llama {
-          0%, 100% { transform: translateY(0px); }
-          50%       { transform: translateY(-16px); }
-        }
-        .star { position: absolute; pointer-events: none; user-select: none; }
-      `}</style>
+      {/* Decorative blobs */}
+      <Box position="absolute" top="-140px" left="-120px" w="380px" h="380px"
+        borderRadius="999px" bg="whiteAlpha.600" opacity={0.5} pointerEvents="none" />
+      <Box position="absolute" bottom="-160px" right="-130px" w="340px" h="340px"
+        borderRadius="999px" bg="whiteAlpha.600" opacity={0.45} pointerEvents="none" />
 
-      {/* Background pixel decorations */}
+      {/* Twinkling stars */}
       {[
-        { top: "8%",  left: "6%",  size: "28px", delay: "0s",    anim: "float-slow 4s ease-in-out infinite" },
-        { top: "15%", left: "85%", size: "20px", delay: "0.5s",  anim: "float-med 3.5s ease-in-out infinite" },
-        { top: "70%", left: "10%", size: "24px", delay: "1s",    anim: "float-slow 5s ease-in-out infinite" },
-        { top: "75%", left: "88%", size: "18px", delay: "0.3s",  anim: "float-med 4.5s ease-in-out infinite" },
-        { top: "40%", left: "4%",  size: "14px", delay: "0.8s",  anim: "twinkle 2s ease-in-out infinite" },
-        { top: "35%", left: "92%", size: "16px", delay: "0.2s",  anim: "twinkle 2.5s ease-in-out infinite" },
-        { top: "55%", left: "50%", size: "12px", delay: "1.2s",  anim: "twinkle 1.8s ease-in-out infinite" },
-        { top: "20%", left: "45%", size: "10px", delay: "0.6s",  anim: "twinkle 3s ease-in-out infinite" },
+        { top: "10%", left: "8%", size: "26px", color: "#F9A8CB", anim: "ss-twinkle 2.6s ease-in-out infinite" },
+        { top: "18%", left: "86%", size: "20px", color: "#CDB4F6", anim: "ss-twinkle 3s ease-in-out infinite .4s" },
+        { top: "78%", left: "12%", size: "22px", color: "#BDE0FE", anim: "ss-twinkle 2.2s ease-in-out infinite .8s" },
+        { top: "70%", left: "88%", size: "18px", color: "#F9A8CB", anim: "ss-twinkle 2.8s ease-in-out infinite .2s" },
+        { top: "40%", left: "5%", size: "14px", color: "#CDB4F6", anim: "ss-twinkle 2.4s ease-in-out infinite 1s" },
       ].map((s, i) => (
-        <Box
-          key={i}
-          className="star"
-          top={s.top}
-          left={s.left}
-          fontSize={s.size}
-          style={{ animation: s.anim, animationDelay: s.delay }}
-        >
-          {["✦", "✧", "★", "✨", "⋆"][i % 5]}
+        <Box key={i} position="absolute" top={s.top} left={s.left} fontSize={s.size}
+          color={s.color} style={{ animation: s.anim }} pointerEvents="none">
+          ✧
         </Box>
       ))}
 
-      <VStack gap={6} zIndex={1} align="center" px={6}>
-        {/* Llama mascot */}
+      <VStack gap="24px" zIndex={1} align="center" px={6}>
+        {/* Mascot */}
         <Box
-          style={{ animation: "bounce-llama 2s ease-in-out infinite" }}
-          filter="drop-shadow(0px 16px 32px rgba(0,0,0,0.35))"
+          style={{ animation: "ss-float 2.4s ease-in-out infinite" }}
+          filter="drop-shadow(0 14px 22px rgba(122,90,160,.3))"
         >
           <Image
-            src="/Llama1.png"
+            src="/LumiInProgress.png"
             alt="Loading mascot"
-            w={{ base: "120px", md: "160px" }}
+            w={{ base: "140px", md: "180px" }}
             h="auto"
           />
         </Box>
 
-        {/* Title */}
-        <VStack gap={1}>
-          <Text
-            fontSize={{ base: "4xl", md: "5xl" }}
-            fontWeight="black"
-            color="white"
-            letterSpacing="tight"
-            lineHeight="1"
-            textShadow="0px 4px 12px rgba(0,0,0,0.25)"
-          >
-            SoftSpace
-          </Text>
-          <Text
-            fontSize={{ base: "xs", md: "sm" }}
-            color="whiteAlpha.800"
-            letterSpacing="widest"
-            textTransform="uppercase"
-          >
-            Your Digital Sanctuary
-          </Text>
-        </VStack>
-
-        {/* Progress bar */}
-        <Box w={{ base: "260px", md: "340px" }}>
-          {/* Track */}
-          <Box
-            w="full"
-            h="18px"
-            bg="whiteAlpha.200"
-            borderRadius="full"
-            border="2px solid"
-            borderColor="whiteAlpha.400"
-            overflow="hidden"
-            p="2px"
-          >
-            {/* Fill */}
-            <Box
-              h="full"
-              borderRadius="full"
-              w={`${progress}%`}
-              transition="width 0.05s linear"
-              style={{
-                background:
-                  "linear-gradient(90deg, #e9b8f7, #f9a8d4, #c084fc, #e9b8f7)",
-                backgroundSize: "200% auto",
-                animation: "shimmer 1.5s linear infinite",
-              }}
-            />
-          </Box>
-
-          {/* Percentage */}
-          <Text
-            textAlign="right"
-            fontSize="xs"
-            color="whiteAlpha.700"
-            mt={1}
-            fontWeight="bold"
-          >
-            {Math.round(progress)}%
-          </Text>
-        </Box>
-
-        {/* Cycling message */}
+        {/* Cycling message as the headline */}
         <Text
-          fontSize={{ base: "md", md: "lg" }}
-          color="whiteAlpha.900"
-          fontWeight="bold"
+          fontFamily={JERSEY}
+          fontSize={{ base: "32px", md: "44px" }}
+          lineHeight="1.1"
+          color="#C0577E"
           textAlign="center"
-          minH="28px"
+          minH={{ base: "36px", md: "48px" }}
           transition="opacity 0.3s ease"
         >
           {MESSAGES[msgIndex]}
         </Text>
+
+        {/* Progress bar */}
+        <VStack gap="8px" w={{ base: "260px", md: "340px" }}>
+          <Box
+            w="full"
+            h="22px"
+            background="white"
+            borderRadius="999px"
+            border="3px solid #FFC8DE"
+            boxShadow="0 5px 0 rgba(196,87,127,.15)"
+            overflow="hidden"
+          >
+            <Box
+              h="full"
+              borderRadius="999px"
+              w={`${progress}%`}
+              transition="width 0.05s linear"
+              background="linear-gradient(90deg,#FFC2DA,#CDB4F6,#BDE0FE)"
+            />
+          </Box>
+
+          <Text
+            fontSize="12px"
+            fontWeight="800"
+            letterSpacing="2px"
+            color="#B79ACB"
+          >
+            {Math.round(progress)}%
+          </Text>
+        </VStack>
+
+        {/* Step rows */}
+        <VStack gap="6px" align="flex-start">
+          {MESSAGES.map((msg, i) => {
+            const done = i < msgIndex;
+            const active = i === msgIndex;
+            return (
+              <Box key={msg} display="flex" alignItems="center" gap="8px">
+                <Box
+                  w="7px" h="7px" borderRadius="999px"
+                  background={done || active ? "#F27DAB" : "transparent"}
+                  border={done || active ? "none" : "1.5px solid #C2AECF"}
+                  opacity={active ? 1 : done ? 0.85 : 0.5}
+                  flexShrink={0}
+                />
+                <Text
+                  fontSize="13px"
+                  fontWeight="700"
+                  color={done || active ? "#8A7690" : "#C2AECF"}
+                  opacity={done || active ? 1 : 0.7}
+                >
+                  {msg}
+                </Text>
+              </Box>
+            );
+          })}
+        </VStack>
       </VStack>
     </Box>
   );

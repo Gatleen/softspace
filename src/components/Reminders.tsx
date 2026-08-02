@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Box, Button, Input, Textarea, VStack, HStack, Text, Badge, IconButton, SimpleGrid,
-} from "@chakra-ui/react";
-import { Plus, Trash2, Bell, BellOff, CheckCircle2, Clock } from "lucide-react";
+import { Box, Input, Textarea, Image, Text } from "@chakra-ui/react";
+import { Clock, Trash2 } from "lucide-react";
+import SoftSpaceCard from "./ui/SoftSpaceCard";
+import SectionHeader from "./ui/SectionHeader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface Reminder {
@@ -53,6 +53,34 @@ const fmtDatetime = (iso: string) =>
 const minutesUntil = (iso: string) =>
   Math.round((new Date(iso).getTime() - Date.now()) / 60000);
 
+// A short "when" label for the reminder's time chip.
+const whenLabel = (r: Reminder) => {
+  if (r.fired) return fmtDatetime(r.datetime);
+  const m = minutesUntil(r.datetime);
+  if (m < 0)  return "overdue";
+  if (m < 60) return `in ${m}m`;
+  return fmtDatetime(r.datetime);
+};
+
+// Pastel color for the "repeat: {repeat}" chip, keyed off the repeat value.
+const repeatChipStyle = (repeat: Reminder["repeat"]) => {
+  if (repeat === "daily")  return { bg: "#F6F0FF", color: "#8A6BD1" };
+  if (repeat === "weekly") return { bg: "#F1F8FE", color: "#5B8FD6" };
+  return { bg: "#F4F1F6", color: "#A08B9B" };
+};
+
+// Trailing status pill: buckets the existing fired / minutesUntil logic into
+// done (fired) vs. upcoming-soon vs. further-out.
+const statusPill = (r: Reminder) => {
+  if (r.fired) return { label: "Done", bg: "#EDFBF1", color: "#0E9F6E" };
+  const m = minutesUntil(r.datetime);
+  if (m < 0)   return { label: "Overdue", bg: "#FFF0F6", color: "#F27DAB" };
+  if (m < 120) return { label: "Soon",    bg: "#FFF0F6", color: "#F27DAB" };
+  return { label: "Later", bg: "#F1F8FE", color: "#5B8FD6" };
+};
+
+const REPEAT_OPTIONS = ["none", "daily", "weekly"] as const;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const Reminders = () => {
   const [reminders, setReminders] = useState<Reminder[]>(loadReminders);
@@ -92,7 +120,7 @@ const Reminders = () => {
 
     // Browser notification (works when SoftSpace is open but not focused)
     if (notifPerm === "granted") {
-      new Notification(`⏰ ${r.title}`, {
+      new Notification(`Reminder: ${r.title}`, {
         body:  r.note || "Your SoftSpace reminder is here!",
         icon:  "/Favicon.png",
         tag:   r.id,
@@ -144,246 +172,298 @@ const Reminders = () => {
     p.map((r) => r.id === id ? { ...r, fired: false, datetime: localNow() } : r)
   );
 
-  const upcoming = reminders.filter((r) => !r.fired)
-    .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
-  const fired    = reminders.filter((r) => r.fired);
+  // Single merged list for the reskinned layout: unfired first (soonest due
+  // first), then fired/done ones trailing at the bottom.
+  const sortedReminders = [...reminders].sort((a, b) => {
+    if (a.fired !== b.fired) return a.fired ? 1 : -1;
+    return new Date(a.datetime).getTime() - new Date(b.datetime).getTime();
+  });
+  const firedCount = reminders.filter((r) => r.fired).length;
 
-  const urgencyColor = (iso: string) => {
-    const m = minutesUntil(iso);
-    if (m < 0)   return "#ef4444";
-    if (m < 30)  return "#f97316";
-    if (m < 120) return "#eab308";
-    return "#a855f7";
+  const notifCopy = () => {
+    if (notifPerm === "granted") {
+      return { title: "Notifications are on ♥", sub: "We'll nudge you gently, even off-tab." };
+    }
+    if (notifPerm === "denied") {
+      return { title: "Notifications are off", sub: "Enable them in your browser settings for a gentle nudge." };
+    }
+    return { title: "Turn notifications on?", sub: "So we can nudge you gently when it's time." };
   };
+  const notif = notifCopy();
 
   return (
-    <Box bg="linear-gradient(135deg,#fff0f6 0%,#f0f0ff 100%)" minH="100vh" p={8}>
+    <Box>
+      <SectionHeader title="Gentle Nudges" />
 
-      {/* Header */}
-      <HStack mb={6} justify="space-between" flexWrap="wrap" gap={4}>
-        <HStack gap={3}>
-          <Box w="40px" h="40px" bg="pink.100" borderRadius="xl"
-            display="flex" alignItems="center" justifyContent="center">
-            <Bell size={22} color="#EC4899" />
-          </Box>
-          <VStack align="start" gap={0}>
-            <Text fontSize="2xl" fontWeight="900" color="pink.500">Reminders</Text>
-            <Text fontSize="xs" color="pink.300" fontWeight="bold">Never miss a thing ✨</Text>
-          </VStack>
-        </HStack>
-
-        <HStack gap={2}>
-          {notifPerm !== "granted" ? (
-            <Button size="sm" colorPalette="pink" borderRadius="full" fontWeight="800"
-              variant="outline" onClick={requestPerm}>
-              <Bell size={14} style={{ marginRight: "6px" }} />
-              Allow Notifications
-            </Button>
-          ) : (
-            <Badge colorPalette="green" variant="subtle" borderRadius="full" px={3} py={1}
-              fontSize="xs" fontWeight="800">
-              <CheckCircle2 size={12} style={{ display: "inline", marginRight: "4px" }} />
-              Notifications On
-            </Badge>
-          )}
-          <Button colorPalette="pink" borderRadius="full" fontWeight="800"
-            boxShadow="0 4px 12px rgba(255,105,180,0.3)"
-            onClick={() => setShowForm((v) => !v)}>
-            <Plus size={16} style={{ marginRight: "6px" }} />
-            {showForm ? "Cancel" : "New Reminder"}
-          </Button>
-        </HStack>
-      </HStack>
-
-      {/* Add form */}
-      {showForm && (
-        <Box bg="white" p={6} borderRadius="3xl" mb={8}
-          boxShadow="0 8px 30px rgba(236,72,153,0.12)"
-          border="2px solid" borderColor="pink.100">
-          <Text fontWeight="800" fontSize="lg" color="pink.500" mb={5}>New Reminder 🔔</Text>
-          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={4}>
-            <Box gridColumn={{ md: "1 / -1" }}>
-              <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">TITLE *</Text>
-              <Input placeholder="e.g. Take a break, Review notes..."
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                bg="pink.50" border="none" borderRadius="xl"
-                onKeyDown={(e) => e.key === "Enter" && addReminder()}
-                _focus={{ boxShadow: "0 0 0 2px #FFB6C1" }} />
-            </Box>
-            <Box>
-              <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">DATE & TIME</Text>
-              <Input type="datetime-local" value={form.datetime}
-                onChange={(e) => setForm({ ...form, datetime: e.target.value })}
-                bg="pink.50" border="none" borderRadius="xl"
-                _focus={{ boxShadow: "0 0 0 2px #FFB6C1" }} />
-            </Box>
-            <Box>
-              <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">REPEAT</Text>
-              <select value={form.repeat}
-                style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "none",
-                  background: "#fff1f5", fontSize: "14px", fontWeight: 600, color: "#374151", outline: "none" }}
-                onChange={(e) => setForm({ ...form, repeat: e.target.value as Reminder["repeat"] })}>
-                <option value="none">No repeat</option>
-                <option value="daily">Every day</option>
-                <option value="weekly">Every week</option>
-              </select>
-            </Box>
-            <Box gridColumn={{ md: "1 / -1" }}>
-              <Text fontSize="10px" fontWeight="800" color="gray.400" mb={1} letterSpacing="wider">NOTE (optional)</Text>
-              <Textarea placeholder="Any extra details..."
-                value={form.note}
-                onChange={(e) => setForm({ ...form, note: e.target.value })}
-                bg="pink.50" border="none" borderRadius="xl" rows={2} resize="none"
-                _focus={{ boxShadow: "0 0 0 2px #FFB6C1" }} />
-            </Box>
-          </SimpleGrid>
-          <Button onClick={addReminder} colorPalette="pink" borderRadius="full" fontWeight="800"
-            boxShadow="0 4px 12px rgba(255,105,180,0.3)">
-            <Plus size={15} style={{ marginRight: "6px" }} /> Set Reminder
-          </Button>
+      {/* Notification status banner */}
+      <Box
+        display="flex"
+        alignItems="center"
+        gap="14px"
+        padding="16px 20px"
+        borderRadius="22px"
+        background="linear-gradient(135deg,#FDF2F8,#F4EEFF)"
+        border="2.5px solid #EEDCFB"
+        marginBottom="22px"
+      >
+        <Box
+          w="44px" h="44px" flexShrink={0}
+          borderRadius="14px"
+          bg="white"
+          boxShadow="0 3px 0 rgba(205,180,246,.4)"
+          display="flex" alignItems="center" justifyContent="center"
+        >
+          <Clock size={20} color="#8A6BD1" />
         </Box>
-      )}
+        <Box flex="1" minW={0}>
+          <Text fontSize="13.5px" fontWeight="800" color="#8A6BD1">{notif.title}</Text>
+          <Text fontSize="11.5px" fontWeight="600" color="#A08B9B">{notif.sub}</Text>
+        </Box>
+        <Box
+          as="button"
+          onClick={requestPerm}
+          flexShrink={0}
+          px="16px" py="8px"
+          borderRadius="999px"
+          background="white"
+          border="2px solid #EEDCFB"
+          color="#8A6BD1"
+          fontSize="12px"
+          fontWeight="800"
+          cursor="pointer"
+        >
+          Manage
+        </Box>
+      </Box>
 
-      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={8} alignItems="start">
+      {/* Main layout */}
+      <Box display="flex" gap="22px" alignItems="flex-start" flexWrap={{ base: "wrap", lg: "nowrap" }}>
 
-        {/* Upcoming */}
-        <VStack gap={4} align="stretch">
-          <Text fontSize="xs" fontWeight="800" color="gray.500" letterSpacing="wider">
-            UPCOMING ({upcoming.length})
-          </Text>
-          {upcoming.length === 0 && (
-            <Box bg="white" p={8} borderRadius="3xl" textAlign="center"
-              border="2px dashed" borderColor="pink.100">
-              <BellOff size={32} color="#FDA4AF" style={{ margin: "0 auto 12px" }} />
-              <Text color="gray.400" fontSize="sm" fontWeight="600">
-                No upcoming reminders — add one above!
+        {/* Left: reminder list */}
+        <Box flex="1" minW={0} display="flex" flexDirection="column" gap="14px">
+          {sortedReminders.length === 0 && (
+            <Box
+              bg="white" borderRadius="22px" border="2.5px dashed #FFDDEB"
+              padding="28px 20px" textAlign="center"
+            >
+              <Text fontSize="13px" fontWeight="700" color="#A08B9B">
+                No reminders yet — add one on the right ♥
               </Text>
             </Box>
           )}
-          {upcoming.map((r) => {
-            const mins    = minutesUntil(r.datetime);
-            const overdue = mins < 0;
-            const accent  = urgencyColor(r.datetime);
+
+          {sortedReminders.map((r) => {
+            const status = statusPill(r);
+            const repeatStyle = repeatChipStyle(r.repeat);
             return (
-              <Box key={r.id} bg="white" borderRadius="2xl"
-                boxShadow="0 4px 16px rgba(236,72,153,0.08)"
-                border="2px solid" style={{ borderColor: overdue ? "#fca5a5" : "#fce7f3" }}
-                overflow="hidden" transition="all 0.2s">
-                <Box display="flex">
-                  <Box w="4px" style={{ background: accent }} flexShrink={0} />
-                  <Box flex={1} p={4}>
-                    <HStack justify="space-between" align="start">
-                      <VStack align="start" gap={1} flex={1} minW={0}>
-                        <Text fontWeight="800" fontSize="md" color="gray.800"
-                          style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {r.title}
-                        </Text>
-                        {r.note && (
-                          <Text fontSize="xs" color="gray.500" fontWeight="500"
-                            style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {r.note}
-                          </Text>
-                        )}
-                        <HStack gap={2} flexWrap="wrap" mt={1}>
-                          <HStack gap={1}>
-                            <Clock size={11} color={accent} />
-                            <Text fontSize="xs" fontWeight="700" style={{ color: accent }}>
-                              {overdue ? "Overdue!" : mins < 60 ? `In ${mins} min` : fmtDatetime(r.datetime)}
-                            </Text>
-                          </HStack>
-                          {!overdue && mins >= 60 && (
-                            <Text fontSize="xs" color="gray.400">{fmtDatetime(r.datetime)}</Text>
-                          )}
-                          {r.repeat !== "none" && (
-                            <Badge colorPalette="purple" variant="subtle" fontSize="9px" borderRadius="full">
-                              🔁 {r.repeat}
-                            </Badge>
-                          )}
-                        </HStack>
-                      </VStack>
-                      <IconButton aria-label="Delete" size="xs" variant="ghost"
-                        colorPalette="red" borderRadius="full" onClick={() => deleteReminder(r.id)}>
-                        <Trash2 size={13} />
-                      </IconButton>
-                    </HStack>
+              <Box
+                key={r.id}
+                display="flex"
+                gap="16px"
+                padding="16px 20px"
+                borderRadius="22px"
+                background="white"
+                border="2.5px solid #FFDDEB"
+                boxShadow="0 5px 0 rgba(255,199,222,.4)"
+                opacity={r.fired ? 0.85 : 1}
+              >
+                <Image src="/icons/Clock.png" alt="" boxSize="52px" objectFit="contain" flexShrink={0} />
+
+                <Box flex="1" minW={0}>
+                  <Text
+                    fontFamily="'Jersey 25', cursive"
+                    fontSize="26px"
+                    lineHeight="1.1"
+                    color="#C0577E"
+                    style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  >
+                    {r.title}
+                  </Text>
+                  {r.note && (
+                    <Text
+                      fontSize="12px" fontWeight="600" color="#A08B9B"
+                      style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >
+                      {r.note}
+                    </Text>
+                  )}
+                  <Box display="flex" flexWrap="wrap" gap="8px" marginTop="8px">
+                    <Box
+                      px="10px" py="4px" borderRadius="999px"
+                      background="#FFF6FA" border="1.5px solid #FFE9F1" color="#8A7690"
+                      fontSize="10.5px" fontWeight="800"
+                    >
+                      {"⏰"} {whenLabel(r)}
+                    </Box>
+                    <Box
+                      px="10px" py="4px" borderRadius="999px"
+                      background={repeatStyle.bg} color={repeatStyle.color}
+                      fontSize="10.5px" fontWeight="800"
+                    >
+                      repeat: {r.repeat}
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Box display="flex" flexDirection="column" alignItems="flex-end" justifyContent="space-between" flexShrink={0}>
+                  <Box
+                    px="12px" py="5px" borderRadius="999px"
+                    background={status.bg} color={status.color}
+                    fontSize="10.5px" fontWeight="800" whiteSpace="nowrap"
+                  >
+                    {status.label}
+                  </Box>
+                  <Box display="flex" gap="6px" mt="8px">
+                    {r.fired && (
+                      <Box
+                        as="button" title="Reschedule"
+                        onClick={() => reschedule(r.id)}
+                        color="#B79ACB" cursor="pointer"
+                        display="flex" alignItems="center" justifyContent="center"
+                      >
+                        <Clock size={14} />
+                      </Box>
+                    )}
+                    <Box
+                      as="button" title="Delete"
+                      onClick={() => deleteReminder(r.id)}
+                      color="#C2AECF" cursor="pointer"
+                      display="flex" alignItems="center" justifyContent="center"
+                    >
+                      <Trash2 size={14} />
+                    </Box>
                   </Box>
                 </Box>
               </Box>
             );
           })}
-        </VStack>
 
-        {/* Past */}
-        <VStack gap={4} align="stretch">
-          <Text fontSize="xs" fontWeight="800" color="gray.500" letterSpacing="wider">
-            PAST ({fired.length})
-          </Text>
-          {fired.length === 0 && (
-            <Box bg="white" p={8} borderRadius="3xl" textAlign="center"
-              border="2px dashed" borderColor="gray.100">
-              <Text color="gray.300" fontSize="sm" fontWeight="600">
-                Completed reminders will appear here ✓
-              </Text>
+          {firedCount > 0 && (
+            <Box
+              as="button" alignSelf="flex-start"
+              onClick={() => setReminders((p) => p.filter((r) => !r.fired))}
+              color="#B79ACB" fontSize="11.5px" fontWeight="700" cursor="pointer"
+              padding="4px 4px"
+            >
+              Clear all done ({firedCount})
             </Box>
           )}
-          {fired.map((r) => (
-            <Box key={r.id} bg="gray.50" borderRadius="2xl"
-              border="1.5px solid" borderColor="gray.100" opacity={0.75} overflow="hidden">
-              <Box display="flex">
-                <Box w="4px" bg="gray.200" flexShrink={0} />
-                <Box flex={1} p={4}>
-                  <HStack justify="space-between">
-                    <VStack align="start" gap={0.5} flex={1} minW={0}>
-                      <Text fontWeight="700" fontSize="sm" color="gray.500"
-                        textDecoration="line-through"
-                        style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {r.title}
-                      </Text>
-                      <Text fontSize="xs" color="gray.400">{fmtDatetime(r.datetime)}</Text>
-                    </VStack>
-                    <HStack gap={1}>
-                      <IconButton aria-label="Reschedule" size="xs" variant="ghost"
-                        colorPalette="purple" borderRadius="full" title="Reschedule"
-                        onClick={() => reschedule(r.id)}>
-                        <Clock size={12} />
-                      </IconButton>
-                      <IconButton aria-label="Delete" size="xs" variant="ghost"
-                        colorPalette="red" borderRadius="full" onClick={() => deleteReminder(r.id)}>
-                        <Trash2 size={12} />
-                      </IconButton>
-                    </HStack>
-                  </HStack>
+        </Box>
+
+        {/* Right: add reminder form */}
+        <Box width="380px" flexShrink={0}>
+          <SoftSpaceCard title="New reminder" subtitle="Future you says thank you">
+            {!showForm ? (
+              <Box textAlign="center" padding="12px 4px 4px">
+                <Box
+                  mx="auto" mb="10px" w="52px" h="52px" borderRadius="18px"
+                  background="#FFF6FA" display="flex" alignItems="center" justifyContent="center"
+                >
+                  <Clock size={24} color="#F27DAB" />
+                </Box>
+                <Text fontSize="13px" fontWeight="700" color="#8A7690" mb="14px">
+                  Ready to set a gentle nudge?
+                </Text>
+                <Box
+                  as="button"
+                  onClick={() => setShowForm(true)}
+                  display="inline-block" px="22px" py="10px" borderRadius="999px"
+                  background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+                  border="2.5px solid white"
+                  boxShadow="0 5px 0 rgba(196,87,127,.22)"
+                  fontFamily="'Jersey 25', cursive" fontSize="16px" color="white" cursor="pointer"
+                >
+                  + New reminder
                 </Box>
               </Box>
-            </Box>
-          ))}
-          {fired.length > 0 && (
-            <Button size="sm" variant="ghost" colorPalette="red" borderRadius="full"
-              fontWeight="700" onClick={() => setReminders((p) => p.filter((r) => !r.fired))}>
-              Clear all past
-            </Button>
-          )}
-        </VStack>
-      </SimpleGrid>
+            ) : (
+              <Box display="flex" flexDirection="column" gap="12px">
+                <Box display="flex" justifyContent="flex-end">
+                  <Box
+                    as="button" onClick={() => setShowForm(false)}
+                    fontSize="11px" fontWeight="700" color="#B79ACB" cursor="pointer"
+                  >
+                    Cancel
+                  </Box>
+                </Box>
 
-      {/* Info box */}
-      <Box mt={8} p={5} bg="white" borderRadius="2xl" border="1.5px solid" borderColor="purple.100">
-        <Text fontWeight="800" fontSize="sm" color="purple.500" mb={2}>💡 How Reminders Work</Text>
-        <VStack align="start" gap={1}>
-          {[
-            "A toast notification appears inside SoftSpace on any page when a reminder fires.",
-            "Browser notifications fire even when you're on a different tab (requires permission).",
-            "The service worker can fire notifications while the browser is open, even if SoftSpace is not your active tab.",
-            "Repeating reminders auto-advance after they fire.",
-            "Your reminders are saved locally in this browser.",
-          ].map((tip, i) => (
-            <HStack key={i} gap={2} align="start">
-              <Text color="purple.300" fontSize="xs" mt={0.5}>•</Text>
-              <Text fontSize="xs" color="gray.500" fontWeight="500">{tip}</Text>
-            </HStack>
-          ))}
-        </VStack>
+                <Box>
+                  <Text fontSize="10.5px" fontWeight="800" color="#B79ACB" mb="6px" letterSpacing="wide">TITLE</Text>
+                  <Input
+                    placeholder="e.g. Take a break"
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    onKeyDown={(e) => e.key === "Enter" && addReminder()}
+                    background="#FFF9FC" border="2px solid #FFDDEB" borderRadius="14px"
+                    padding="11px 14px" height="auto" fontSize="13px"
+                    _focus={{ borderColor: "#F9A8CB" }}
+                  />
+                </Box>
+
+                <Box>
+                  <Text fontSize="10.5px" fontWeight="800" color="#B79ACB" mb="6px" letterSpacing="wide">NOTE (optional)</Text>
+                  <Textarea
+                    placeholder="Any extra details..."
+                    value={form.note}
+                    onChange={(e) => setForm({ ...form, note: e.target.value })}
+                    background="#FFF9FC" border="2px solid #FFDDEB" borderRadius="14px"
+                    padding="11px 14px" fontSize="13px" rows={2} resize="none"
+                    _focus={{ borderColor: "#F9A8CB" }}
+                  />
+                </Box>
+
+                <Box>
+                  <Text fontSize="10.5px" fontWeight="800" color="#B79ACB" mb="6px" letterSpacing="wide">DATE &amp; TIME</Text>
+                  <Input
+                    type="datetime-local"
+                    value={form.datetime}
+                    onChange={(e) => setForm({ ...form, datetime: e.target.value })}
+                    background="#FFF9FC" border="2px solid #FFDDEB" borderRadius="14px"
+                    padding="11px 14px" height="auto" fontSize="13px"
+                    _focus={{ borderColor: "#F9A8CB" }}
+                  />
+                </Box>
+
+                <Box>
+                  <Text fontSize="10.5px" fontWeight="800" color="#B79ACB" mb="6px" letterSpacing="wide">REPEAT</Text>
+                  <Box display="flex" gap="8px">
+                    {REPEAT_OPTIONS.map((opt) => {
+                      const active = form.repeat === opt;
+                      return (
+                        <Box
+                          key={opt}
+                          as="button"
+                          onClick={() => setForm({ ...form, repeat: opt })}
+                          flex="1" textAlign="center" py="8px"
+                          borderRadius="999px"
+                          fontFamily="'Jersey 25', cursive" fontSize="14px"
+                          border={active ? "2.5px solid white" : "2px solid #FFDDEB"}
+                          background={active ? "linear-gradient(135deg,#FFC2DA,#CDB4F6)" : "white"}
+                          color={active ? "white" : "#8A7690"}
+                          boxShadow={active ? "0 5px 0 rgba(196,87,127,.22)" : "none"}
+                          cursor="pointer"
+                        >
+                          {opt === "none" ? "None" : opt === "daily" ? "Daily" : "Weekly"}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+
+                <Box
+                  as="button" onClick={addReminder}
+                  width="100%" mt="4px" py="12px" borderRadius="999px"
+                  background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+                  border="2.5px solid white"
+                  boxShadow="0 5px 0 rgba(196,87,127,.22)"
+                  fontFamily="'Jersey 25', cursive" fontSize="18px" color="white" cursor="pointer"
+                >
+                  Add reminder {"♥"}
+                </Box>
+              </Box>
+            )}
+          </SoftSpaceCard>
+        </Box>
       </Box>
     </Box>
   );

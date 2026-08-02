@@ -86,37 +86,30 @@ const WeatherWidget = () => {
     return "linear-gradient(135deg, #60a5fa 0%, #93c5fd 100%)";
   };
 
-  const isDark = weather ? (!weather.isDay || weather.code >= 61) : false;
-  const textOnBg = isDark ? "white" : "white"; // always white on gradient
-
   return (
     <Box
       bg="white"
-      borderRadius="3xl"
-      border="1.5px solid"
-      borderColor="purple.100"
-      boxShadow="0 8px 32px rgba(192,132,252,0.12)"
+      borderRadius="24px"
+      border="2.5px solid"
+      borderColor="#D8E9FB"
+      boxShadow="0 6px 0 rgba(189,224,254,.5)"
       overflow="hidden"
     >
       {/* Sky gradient header */}
       <Box
-        style={{ background: weather ? getSkyGradient(weather.code, weather.isDay) : "linear-gradient(135deg, #c084fc, #f472b6)" }}
-        px={6} pt={5} pb={8}
+        style={{ background: weather ? getSkyGradient(weather.code, weather.isDay) : "linear-gradient(135deg,#BDE0FE,#C9C4F5)" }}
+        px={5} pt="18px" pb="26px"
         position="relative"
         overflow="hidden"
       >
-        {/* Decorative blobs */}
-        <Box position="absolute" top="-20px" right="-20px" w="90px" h="90px"
-          borderRadius="full" bg="whiteAlpha.100" />
-        <Box position="absolute" bottom="-30px" left="10px" w="70px" h="70px"
-          borderRadius="full" bg="whiteAlpha.100" />
+        <Box position="absolute" right="-20px" top="-20px" w="90px" h="90px" borderRadius="999px" bg="rgba(255,255,255,.28)" />
 
         <HStack justify="space-between" align="start" position="relative">
           <VStack align="start" gap={0}>
             <HStack gap={2} mb={1}>
               <Image src="/icons/Rainbow.png" boxSize="22px" objectFit="contain" />
-              <Text fontSize="xs" fontWeight="800" color="whiteAlpha.800"
-                textTransform="uppercase" letterSpacing="widest">
+              <Text fontSize="10.5px" fontWeight="800" color="rgba(255,255,255,.95)"
+                textTransform="uppercase" letterSpacing="3px">
                 Weather
               </Text>
             </HStack>
@@ -127,13 +120,13 @@ const WeatherWidget = () => {
             ) : (
               <>
                 <Text
-                  fontSize="5xl" fontWeight="900" lineHeight="1"
-                  color={textOnBg}
-                  style={{ textShadow: "0 2px 12px rgba(0,0,0,0.2)" }}
+                  fontFamily="'Jersey 25', cursive" fontSize="62px" lineHeight="1"
+                  color="white" mt="6px"
+                  textShadow="0 3px 0 rgba(91,143,214,.4)"
                 >
                   {weather?.temp}°
                 </Text>
-                <Text fontSize="sm" fontWeight="bold" color="whiteAlpha.900" mt={1}>
+                <Text fontSize="13px" fontWeight="800" color="white" mt="2px">
                   {weather?.condition}
                 </Text>
               </>
@@ -157,27 +150,27 @@ const WeatherWidget = () => {
 
       {/* Info strip */}
       {!loading && !error && weather && (
-        <HStack px={5} py={3} justify="space-between" bg="white">
+        <HStack px="18px" py="12px" justify="space-between" bg="white">
           <HStack gap={1}>
-            <MapPin size={13} color="#a78bfa" />
-            <Text fontSize="xs" color="gray.500" fontWeight="bold">{locationName}</Text>
+            <MapPin size={13} color="#A08B9B" />
+            <Text fontSize="11.5px" color="#A08B9B" fontWeight="700">{locationName}</Text>
           </HStack>
-          <HStack gap={3}>
+          <HStack gap="10px">
             <HStack gap={1}>
-              <Wind size={13} color="#a78bfa" />
-              <Text fontSize="xs" color="gray.500" fontWeight="bold">
+              <Wind size={13} color="#A08B9B" />
+              <Text fontSize="11.5px" color="#A08B9B" fontWeight="700">
                 {weather.windspeed} km/h
               </Text>
             </HStack>
             <Box
-              px={2} py="2px" borderRadius="full"
-              bg={weather.isDay ? "orange.50" : "purple.50"}
-              border="1px solid"
-              borderColor={weather.isDay ? "orange.100" : "purple.100"}
+              px="9px" py="3px" borderRadius="999px"
+              bg={weather.isDay ? "#FFF6E5" : "#F6F0FF"}
+              border="1.5px solid"
+              borderColor={weather.isDay ? "#FFE0AF" : "#EEDCFB"}
             >
               <Text fontSize="10px" fontWeight="800"
-                color={weather.isDay ? "orange.500" : "purple.500"}>
-                {weather.isDay ? "☀️ Daytime" : "🌙 Nighttime"}
+                color={weather.isDay ? "#C99A3E" : "#8A6BD1"}>
+                {weather.isDay ? "☀ Daytime" : "🌙 Nighttime"}
               </Text>
             </Box>
           </HStack>

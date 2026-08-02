@@ -1,28 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  Box,
-  Button,
-  Input,
-  Textarea,
-  VStack,
-  HStack,
-  Text,
-  Image,
-  IconButton,
-  SimpleGrid,
-  Drawer,
-} from "@chakra-ui/react";
-import {
-  Plus,
-  Trash2,
-  X,
-  Image as ImageIcon,
-  Sticker,
-  ArrowLeft,
-  Save,
-  Check,
-} from "lucide-react";
+import { Box, Input, Textarea, Text, IconButton, Image } from "@chakra-ui/react";
+import { Trash2, X, ArrowLeft } from "lucide-react";
 import stickerPacks from "../data/stickerPacks.json";
+import SoftSpaceCard from "./ui/SoftSpaceCard";
+import SectionHeader from "./ui/SectionHeader";
 
 // 🏗️ Data Structure
 interface Attachment {
@@ -245,353 +226,387 @@ const Notebook = () => {
     }
   };
 
+  const pillBase = {
+    borderRadius: "999px",
+    fontFamily: "'Jersey 25', cursive",
+    fontSize: "16px",
+    cursor: "pointer",
+    padding: "8px 18px",
+  } as const;
+
   return (
-    <Box
-      w="100%"
-      h="calc(100vh - 40px)" // Adjust based on your layout padding
-      maxW="1400px"
-      mx="auto"
-      display="flex"
-      borderRadius="3xl"
-      overflow="hidden"
-      boxShadow="2xl"
-      position="relative"
-      bg="white"
-    >
-      {/* 1️⃣ LEFT SPINE */}
-      <Box
-        w="60px"
-        bgGradient="linear(to-b, pink.500, purple.600)"
-        position="relative"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        py={8}
-        gap={8}
-        borderRight="5px solid rgba(0,0,0,0.2)"
-        flexShrink={0}
-      >
-        {[...Array(8)].map((_, i) => (
-          <Box key={i} w="100%" h="20px" position="relative">
-            <Box
-              position="absolute"
-              left="8px"
-              w="50px"
-              h="14px"
-              bg="gray.300"
-              borderRadius="full"
-              boxShadow="inset 2px 2px 5px rgba(0,0,0,0.3)"
-              zIndex={2}
-            />
-          </Box>
-        ))}
-      </Box>
+    <Box w="100%">
+      <SectionHeader
+        title="My Journal"
+        meta={`${entries.length} ${entries.length === 1 ? "entry" : "entries"} · saved to this device`}
+      />
 
-      {/* 2️⃣ PAPER AREA */}
-      <Box
-        flex={1}
-        bg="#fffcf5"
-        display="flex"
-        flexDirection="column"
-        position="relative"
-      >
-        {activeEntry ? (
-          <>
-            {/* 🛠️ TOOLBAR */}
-            <HStack
-              p={4}
-              borderBottom="2px dashed"
-              borderColor="pink.200"
-              justify="space-between"
-              bg="whiteAlpha.500"
+      <Box display="flex" gap="22px" alignItems="flex-start" flexWrap="wrap">
+        {/* 1️⃣ LEFT SIDEBAR — Entries */}
+        <Box w="300px" flexShrink={0}>
+          <SoftSpaceCard icon="/icons/Notebook.png" title="Entries" subtitle="Newest first">
+            <Box
+              as="button"
+              onClick={addEntry}
+              w="100%"
+              border="2px dashed #FFC8DE"
+              borderRadius="14px"
+              padding="11px 14px"
+              textAlign="center"
+              fontSize="12.5px"
+              fontWeight="800"
+              color="#F27DAB"
+              bg="transparent"
+              cursor="pointer"
+              mb="12px"
             >
-              <VStack align="start" gap={0} flex={1}>
-                <Input
-                  //variant="unstyled"
-                  fontSize="3xl"
-                  fontWeight="black"
-                  color="gray.800"
-                  placeholder="Untitled Story..."
-                  value={activeEntry.title}
-                  onChange={(e) => updateEntry("title", e.target.value)}
-                  px={2}
-                />
-                <Text fontSize="sm" color="gray.500" px={2} fontWeight="medium">
-                  {activeEntry.date}
+              + New Entry
+            </Box>
+
+            <Box display="flex" flexDirection="column" gap="10px">
+              {entries.length === 0 && (
+                <Text fontSize="11.5px" fontWeight="600" color="#C2AECF" textAlign="center">
+                  No entries yet ✧
                 </Text>
-              </VStack>
+              )}
+              {entries.map((ent) => {
+                const isSelected = selectedId === ent.id;
+                const preview = ent.content.trim()
+                  ? ent.content.slice(0, 64) + (ent.content.length > 64 ? "…" : "")
+                  : "No content yet...";
+                return (
+                  <Box
+                    key={ent.id}
+                    onClick={() => setSelectedId(ent.id)}
+                    cursor="pointer"
+                    padding="13px 14px"
+                    borderRadius="16px"
+                    bg={isSelected ? "#FFF0F6" : "#FFF9FC"}
+                    border="2px solid"
+                    borderColor={isSelected ? "#F27DAB" : "#FFE9F1"}
+                  >
+                    <Box display="flex" alignItems="baseline" justifyContent="space-between" gap="8px">
+                      <Text
+                        fontSize="13.5px"
+                        fontWeight="800"
+                        color="#C0577E"
+                        overflow="hidden"
+                        textOverflow="ellipsis"
+                        whiteSpace="nowrap"
+                      >
+                        {ent.title || "Untitled"}
+                      </Text>
+                      <Text fontSize="10px" fontWeight="700" color="#C2AECF" flexShrink={0}>
+                        {ent.date}
+                      </Text>
+                    </Box>
+                    <Text
+                      fontSize="11.5px"
+                      fontWeight="600"
+                      color="#A08B9B"
+                      mt="4px"
+                      overflow="hidden"
+                      textOverflow="ellipsis"
+                      whiteSpace="nowrap"
+                    >
+                      {preview}
+                    </Text>
+                  </Box>
+                );
+              })}
+            </Box>
+          </SoftSpaceCard>
+        </Box>
 
-              <HStack gap={3}>
-                <Button
-                  colorPalette={isSaving ? "green" : "gray"}
-                  variant="surface"
-                  onClick={handleManualSave}
-                  minW="100px"
-                >
-                  {isSaving ? <Check size={18} /> : <Save size={18} />}
-                  {isSaving ? "Saved!" : "Save"}
-                </Button>
-
-                <Button
-                  colorPalette="purple"
-                  variant="outline"
-                  onClick={() => setIsStickerDrawerOpen(true)}
-                >
-                  <Sticker size={18} /> Stickers
-                </Button>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  hidden
-                  onChange={handleFileUpload}
-                  accept="image/*"
-                />
-                <IconButton
-                  aria-label="Upload"
-                  variant="ghost"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <ImageIcon size={20} />
-                </IconButton>
-
-                <IconButton
-                  aria-label="Delete"
-                  variant="ghost"
-                  colorPalette="red"
-                  onClick={() => deleteEntry(activeEntry.id)}
-                >
-                  <Trash2 size={20} />
-                </IconButton>
-                <Button colorPalette="purple" onClick={addEntry}>
-                  <Plus /> New Page
-                </Button>
-              </HStack>
-            </HStack>
-
-            {/* 📝 CANVAS */}
-            <Box
-              ref={paperRef}
-              flex={1}
-              p={10}
-              overflow="hidden"
-              position="relative"
-              bgImage="linear-gradient(#e1e1e1 1px, transparent 1px)"
-              bgSize="100% 40px"
-            >
-              <Textarea
-                //variant="unstyled"
-                h="100%"
-                w="100%"
-                resize="none"
-                fontSize="xl"
-                lineHeight="40px"
-                placeholder="Start writing..."
-                value={activeEntry.content}
-                onChange={(e) => updateEntry("content", e.target.value)}
-                zIndex={1}
+        {/* 2️⃣ RIGHT MAIN PANEL */}
+        <Box
+          flex="1"
+          minW="0"
+          bg="white"
+          border="2.5px solid #FFDDEB"
+          borderRadius="24px"
+          boxShadow="0 6px 0 rgba(255,199,222,.45)"
+          overflow="hidden"
+        >
+          {activeEntry ? (
+            <>
+              {/* washi tape strip */}
+              <Box
+                h="12px"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(90deg,#FFC2DA 0 18px,#FFF3D6 18px 36px)",
+                }}
               />
 
-              {activeEntry.attachments.map((att) => (
-                <Box
-                  key={att.id}
-                  position="absolute"
-                  left={`${att.x}px`}
-                  top={`${att.y}px`}
-                  width={`${att.width}px`}
-                  transform={`rotate(${att.rotation}deg)`}
-                  cursor={draggingId === att.id ? "grabbing" : "grab"}
-                  zIndex={10}
-                  onMouseDown={(e) => handleDragStart(e, att)}
-                  className="group"
-                >
-                  <Image
-                    src={att.src}
-                    w="100%"
+              <Box padding="28px 34px 34px">
+                <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap="12px">
+                  <Input
+                    value={activeEntry.title}
+                    onChange={(e) => updateEntry("title", e.target.value)}
+                    placeholder="Untitled Story..."
+                    fontFamily="'Jersey 25', cursive"
+                    fontSize="40px"
+                    color="#C0577E"
+                    border="none"
+                    outline="none"
+                    p="0"
                     h="auto"
-                    draggable={false}
-                    pointerEvents="none"
-                    filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.1))"
+                    _focus={{ boxShadow: "none" }}
+                    bg="transparent"
                   />
                   <IconButton
-                    aria-label="Remove"
-                    size="xs"
-                    colorPalette="red"
-                    rounded="full"
-                    position="absolute"
-                    top="-10px"
-                    right="-10px"
-                    opacity={0}
-                    _groupHover={{ opacity: 1 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeAttachment(att.id);
-                    }}
-                  >
-                    <X size={12} />
-                  </IconButton>
-
-                  <Box
-                    position="absolute"
-                    bottom="-6px"
-                    right="-6px"
-                    w="16px"
-                    h="16px"
-                    bg="purple.400"
-                    borderRadius="full"
-                    border="2px solid white"
-                    cursor="nwse-resize"
-                    opacity={0}
-                    _groupHover={{ opacity: 1 }}
-                    onMouseDown={(e) => handleResizeStart(e, att.id)}
-                    zIndex={30}
-                  />
-                </Box>
-              ))}
-            </Box>
-          </>
-        ) : (
-          <Box
-            flex={1}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Button onClick={addEntry} colorPalette="purple" size="xl">
-              Create First Page
-            </Button>
-          </Box>
-        )}
-      </Box>
-
-      {/* 📑 RIGHT TABS */}
-      <Box
-        position="absolute"
-        right="-45px"
-        top="40px"
-        display="flex"
-        flexDirection="column"
-        gap={3}
-        zIndex={50}
-      >
-        {entries.map((ent) => (
-          <Box
-            key={ent.id}
-            w="50px"
-            h="60px"
-            bg={selectedId === ent.id ? "pink.500" : "white"}
-            border="1px solid"
-            borderColor="gray.300"
-            borderLeft="none"
-            borderRightRadius="xl"
-            cursor="pointer"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            onClick={() => setSelectedId(ent.id)}
-            boxShadow="-2px 2px 5px rgba(0,0,0,0.1)"
-            transition="all 0.2s"
-            _hover={{ transform: "translateX(5px)" }}
-          >
-            <Text
-              fontSize="xs"
-              fontWeight="bold"
-              color={selectedId === ent.id ? "white" : "gray.500"}
-              style={{
-                writingMode: "vertical-rl",
-                transform: "rotate(180deg)",
-              }}
-            >
-              {new Date(ent.date).getDate()}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-
-      {/* 🎒 STICKER DRAWER */}
-      <Drawer.Root
-        open={isStickerDrawerOpen}
-        onOpenChange={(e) => setIsStickerDrawerOpen(e.open)}
-        placement="end"
-      >
-        <Drawer.Backdrop />
-        <Drawer.Positioner>
-          <Drawer.Content offset={4} borderRadius="2xl">
-            <Drawer.Header bg="purple.50">
-              <HStack>
-                {selectedPackId && (
-                  <IconButton
-                    aria-label="Back"
+                    aria-label="Delete entry"
                     variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedPackId(null)}
+                    onClick={() => deleteEntry(activeEntry.id)}
+                    color="#C2AECF"
+                    _hover={{ color: "#F27DAB", bg: "#FFF0F6" }}
+                    flexShrink={0}
                   >
-                    <ArrowLeft size={18} />
+                    <Trash2 size={18} />
                   </IconButton>
-                )}
-                <Drawer.Title fontSize="lg" fontWeight="bold">
-                  {selectedPackId ? "Choose Sticker" : "Stickers"}
-                </Drawer.Title>
-              </HStack>
-            </Drawer.Header>
-            <Drawer.Body bg="gray.50" p={4}>
-              {!selectedPackId ? (
-                <SimpleGrid columns={1} gap={4}>
-                  {stickerPacks.map((pack) => (
+                </Box>
+                <Text fontSize="11.5px" fontWeight="700" color="#C2AECF">
+                  {activeEntry.date}
+                </Text>
+
+                {/* 📝 CANVAS — lined paper, drag/resize logic untouched */}
+                <Box
+                  ref={paperRef}
+                  position="relative"
+                  overflow="hidden"
+                  mt="18px"
+                  padding="18px 20px"
+                  borderRadius="16px"
+                  border="2px solid #FFE9F1"
+                  minH="260px"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(#FFFDFE 0 31px,#FFEDF4 31px 32px)",
+                  }}
+                >
+                  <Textarea
+                    h="100%"
+                    minH="220px"
+                    w="100%"
+                    resize="none"
+                    border="none"
+                    outline="none"
+                    fontSize="15px"
+                    fontWeight="600"
+                    lineHeight="32px"
+                    color="#5C4A63"
+                    bg="transparent"
+                    p="0"
+                    _focus={{ boxShadow: "none" }}
+                    placeholder="Start writing..."
+                    value={activeEntry.content}
+                    onChange={(e) => updateEntry("content", e.target.value)}
+                    position="relative"
+                    zIndex={1}
+                  />
+
+                  {activeEntry.attachments.map((att) => (
                     <Box
-                      key={pack.id}
-                      bg="white"
-                      p={4}
-                      borderRadius="xl"
-                      cursor="pointer"
-                      onClick={() => setSelectedPackId(pack.id)}
-                      display="flex"
-                      alignItems="center"
-                      gap={4}
+                      key={att.id}
+                      position="absolute"
+                      left={`${att.x}px`}
+                      top={`${att.y}px`}
+                      width={`${att.width}px`}
+                      transform={`rotate(${att.rotation}deg)`}
+                      cursor={draggingId === att.id ? "grabbing" : "grab"}
+                      zIndex={10}
+                      onMouseDown={(e) => handleDragStart(e, att)}
+                      className="group"
                     >
-                      <Box bg="purple.100" p={3} borderRadius="lg">
-                        <Sticker size={24} color="#6B46C1" />
-                      </Box>
-                      <Box>
-                        <Text fontWeight="bold">{pack.name}</Text>
-                        <Text fontSize="xs" color="gray.500">
-                          {pack.files.length} stickers
-                        </Text>
-                      </Box>
+                      <Image
+                        src={att.src}
+                        w="100%"
+                        h="auto"
+                        draggable={false}
+                        pointerEvents="none"
+                        filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.1))"
+                      />
+                      <IconButton
+                        aria-label="Remove"
+                        size="xs"
+                        rounded="full"
+                        position="absolute"
+                        top="-10px"
+                        right="-10px"
+                        opacity={0}
+                        bg="#F27DAB"
+                        color="white"
+                        _hover={{ bg: "#C0577E" }}
+                        _groupHover={{ opacity: 1 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeAttachment(att.id);
+                        }}
+                      >
+                        <X size={12} />
+                      </IconButton>
+
+                      <Box
+                        position="absolute"
+                        bottom="-6px"
+                        right="-6px"
+                        w="16px"
+                        h="16px"
+                        bg="#8A6BD1"
+                        borderRadius="full"
+                        border="2px solid white"
+                        cursor="nwse-resize"
+                        opacity={0}
+                        _groupHover={{ opacity: 1 }}
+                        onMouseDown={(e) => handleResizeStart(e, att.id)}
+                        zIndex={30}
+                      />
                     </Box>
                   ))}
-                </SimpleGrid>
-              ) : (
-                <SimpleGrid columns={3} gap={3}>
-                  {stickerPacks
-                    .find((p) => p.id === selectedPackId)
-                    ?.files.map((file, i) => (
-                      <Box
-                        key={i}
-                        bg="white"
-                        p={2}
-                        borderRadius="lg"
-                        cursor="pointer"
-                        _hover={{ bg: "purple.50" }}
-                        onClick={() =>
-                          addAttachment(
-                            `/stickers/${stickerPacks.find((p) => p.id === selectedPackId)?.folder}/${file}`,
-                          )
-                        }
+                </Box>
+
+                {/* 🛠️ ACTION PILLS */}
+                <Box display="flex" gap="12px" mt="18px" flexWrap="wrap">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    hidden
+                    onChange={handleFileUpload}
+                    accept="image/*"
+                  />
+                  <Box
+                    as="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    {...pillBase}
+                    background="#FFF0F6"
+                    border="2px solid #FFDDEB"
+                    color="#F27DAB"
+                  >
+                    ＋ Add photo
+                  </Box>
+                  <Box
+                    as="button"
+                    onClick={() => setIsStickerDrawerOpen((prev) => !prev)}
+                    {...pillBase}
+                    background="#F6F0FF"
+                    border="2px solid #EEDCFB"
+                    color="#8A6BD1"
+                  >
+                    ✧ Stickers
+                  </Box>
+                  <Box
+                    as="button"
+                    onClick={handleManualSave}
+                    {...pillBase}
+                    background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+                    border="2.5px solid white"
+                    boxShadow="0 5px 0 rgba(196,87,127,.22)"
+                    color="white"
+                  >
+                    {isSaving ? "♡ Saved!" : "♡ Save entry"}
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* 🎒 STICKER DRAWER — inline, pack ⇄ sticker navigation untouched */}
+              {isStickerDrawerOpen && (
+                <Box borderTop="3px dotted #FFD3E4" padding="16px 34px 22px">
+                  <Box display="flex" alignItems="center" justifyContent="space-between" mb="12px">
+                    <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#C0577E">
+                      {selectedPackId ? "CHOOSE STICKER" : "STICKER DRAWER"}
+                    </Text>
+                    {selectedPackId && (
+                      <IconButton
+                        aria-label="Back"
+                        variant="ghost"
+                        size="sm"
+                        color="#C0577E"
+                        onClick={() => setSelectedPackId(null)}
                       >
-                        <Image
-                          src={`/stickers/${stickerPacks.find((p) => p.id === selectedPackId)?.folder}/${file}`}
-                          w="100%"
-                          draggable={false}
-                        />
-                      </Box>
-                    ))}
-                </SimpleGrid>
+                        <ArrowLeft size={16} />
+                      </IconButton>
+                    )}
+                  </Box>
+
+                  {!selectedPackId ? (
+                    <Box display="flex" flexWrap="wrap" gap="12px">
+                      {stickerPacks.map((pack) => (
+                        <Box
+                          key={pack.id}
+                          as="button"
+                          onClick={() => setSelectedPackId(pack.id)}
+                          w="96px"
+                          padding="10px"
+                          borderRadius="16px"
+                          bg="#FFF9FC"
+                          border="2px solid #FFE9F1"
+                          textAlign="center"
+                        >
+                          <Image
+                            src={`/stickers/${pack.folder}/${pack.files[0]}`}
+                            boxSize="48px"
+                            mx="auto"
+                            objectFit="contain"
+                            draggable={false}
+                          />
+                          <Text fontSize="10.5px" fontWeight="800" color="#A08B9B" mt="6px">
+                            {pack.name}
+                          </Text>
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box display="flex" flexWrap="wrap" gap="12px">
+                      {stickerPacks
+                        .find((p) => p.id === selectedPackId)
+                        ?.files.map((file, i) => {
+                          const folder = stickerPacks.find((p) => p.id === selectedPackId)?.folder;
+                          return (
+                            <Box
+                              key={i}
+                              as="button"
+                              onClick={() => addAttachment(`/stickers/${folder}/${file}`)}
+                              w="96px"
+                              padding="10px"
+                              borderRadius="16px"
+                              bg="#FFF9FC"
+                              border="2px solid #FFE9F1"
+                              textAlign="center"
+                            >
+                              <Image
+                                src={`/stickers/${folder}/${file}`}
+                                boxSize="48px"
+                                mx="auto"
+                                objectFit="contain"
+                                draggable={false}
+                              />
+                            </Box>
+                          );
+                        })}
+                    </Box>
+                  )}
+                </Box>
               )}
-            </Drawer.Body>
-          </Drawer.Content>
-        </Drawer.Positioner>
-      </Drawer.Root>
+            </>
+          ) : (
+            <Box padding="60px 34px" textAlign="center">
+              <Box
+                as="button"
+                onClick={addEntry}
+                {...pillBase}
+                background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
+                border="2.5px solid white"
+                boxShadow="0 5px 0 rgba(196,87,127,.22)"
+                color="white"
+                fontSize="20px"
+              >
+                Create First Page
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 };

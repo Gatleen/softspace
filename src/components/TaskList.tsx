@@ -10,7 +10,8 @@ import {
   Image,
 } from "@chakra-ui/react";
 import { useState, useMemo } from "react";
-import { Flag, Calendar, SortAsc, Archive, Heart, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { Flag, Calendar, SortAsc, Archive, Heart, ChevronDown, ChevronRight, Plus, ExternalLink } from "lucide-react";
+import { getDueBucket, DUE_BUCKET_STYLE } from "../lib/dueDate";
 
 type Priority = "low" | "medium" | "high";
 type SortBy = "priority" | "date" | "name" | "dueDate";
@@ -40,6 +41,9 @@ interface Task {
   starred: boolean;
   archived: boolean;
   subtasks: Subtask[];
+  source?: "local" | "jira";
+  jiraKey?: string;
+  jiraUrl?: string;
 }
 
 interface Props {
@@ -154,47 +158,42 @@ const TaskList = ({ tasks, setTasks }: Props) => {
   return (
     <Box
       bg="white"
-      borderRadius="3xl"
-      border="1.5px solid"
-      borderColor="pink.100"
-      boxShadow="0 8px 32px rgba(255,182,193,0.15)"
+      borderRadius="24px"
+      border="2.5px solid"
+      borderColor="#FFDDEB"
+      boxShadow="0 6px 0 rgba(255,199,222,.45)"
       overflow="hidden"
     >
       {/* ── Gradient header ── */}
       <Box
-        bg="linear-gradient(135deg, #f9a8d4 0%, #c084fc 100%)"
-        px={6} pt={5} pb={5}
+        background="linear-gradient(135deg,#FFC2DA,#D9BFF7)"
+        px={5} pt={4} pb={4}
         position="relative"
         overflow="hidden"
       >
-        <Box position="absolute" top="-20px" right="-20px" w="90px" h="90px"
-          borderRadius="full" bg="whiteAlpha.100" />
-        <Box position="absolute" bottom="-30px" left="20px" w="70px" h="70px"
-          borderRadius="full" bg="whiteAlpha.100" />
-
         <HStack justify="space-between" position="relative">
           <HStack gap={3}>
             <Box
-              w="42px" h="42px" borderRadius="xl"
-              bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+              w="42px" h="42px" borderRadius="14px"
+              bg="rgba(255,255,255,.35)"
               display="flex" alignItems="center" justifyContent="center" flexShrink={0}
             >
               <Image src="/icons/Task.png" alt="Tasks" boxSize="26px" objectFit="contain" />
             </Box>
             <VStack align="start" gap={0}>
-              <Text fontSize="lg" fontWeight="900" color="white" lineHeight="1">
+              <Text fontFamily="'Jersey 25', cursive" fontSize="24px" color="white" letterSpacing=".6px" textShadow="0 2px 0 rgba(196,87,127,.3)" lineHeight="1.1">
                 My Daily Tasks
               </Text>
-              <Text fontSize="xs" color="whiteAlpha.800" fontWeight="bold">
+              <Text fontSize="10.5px" color="rgba(255,255,255,.9)" fontWeight="700">
                 Stay Girly, Stay Productive
               </Text>
             </VStack>
           </HStack>
           <Box
-            px={3} py={1} borderRadius="full"
-            bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+            px="12px" py="5px" borderRadius="999px"
+            bg="rgba(255,255,255,.4)"
           >
-            <Text fontSize="xs" fontWeight="800" color="white">
+            <Text fontSize="11px" fontWeight="800" color="white">
               {tasks.filter((t) => !t.completed).length} to do
             </Text>
           </Box>
@@ -329,8 +328,9 @@ const TaskList = ({ tasks, setTasks }: Props) => {
               <HStack p={4} gap={3} align="start">
                 <Checkbox.Root
                   checked={task.completed}
+                  disabled={task.source === "jira"}
                   onCheckedChange={() =>
-                    updateTask(task.id, { completed: !task.completed })
+                    task.source !== "jira" && updateTask(task.id, { completed: !task.completed })
                   }
                   colorPalette="pink"
                   mt="2px"
@@ -370,21 +370,46 @@ const TaskList = ({ tasks, setTasks }: Props) => {
                       </Text>
                     </Box>
 
-                    {task.dueDate && (
-                      <Box
-                        px={2} py="2px"
-                        bg="orange.50"
-                        borderRadius="full"
-                        border="1px solid"
-                        borderColor="orange.100"
-                        display="inline-flex"
-                        alignItems="center"
-                        gap="5px"
-                      >
-                        <Text fontSize="10px" fontWeight="800" color="orange.500">
-                          ⏰ {task.dueDate}
-                        </Text>
-                      </Box>
+                    {task.dueDate && (() => {
+                      const bucket = DUE_BUCKET_STYLE[getDueBucket(task.dueDate)];
+                      return (
+                        <Box
+                          px={2} py="2px"
+                          bg={bucket.bg}
+                          borderRadius="full"
+                          border="1px solid"
+                          borderColor={bucket.border}
+                          display="inline-flex"
+                          alignItems="center"
+                          gap="5px"
+                        >
+                          <Box w="6px" h="6px" borderRadius="full" bg={bucket.dot} flexShrink={0} />
+                          <Text fontSize="10px" fontWeight="800" color={bucket.fg}>
+                            {bucket.label(task.dueDate)}
+                          </Text>
+                        </Box>
+                      );
+                    })()}
+
+                    {task.source === "jira" && (
+                      <a href={task.jiraUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+                        <Box
+                          px={2} py="2px"
+                          bg="#F1F8FE"
+                          borderRadius="full"
+                          border="1px solid"
+                          borderColor="#D8E9FB"
+                          display="inline-flex"
+                          alignItems="center"
+                          gap="5px"
+                          cursor="pointer"
+                        >
+                          <Text fontSize="10px" fontWeight="800" color="#5B8FD6">
+                            {task.jiraKey}
+                          </Text>
+                          <ExternalLink size={10} color="#5B8FD6" />
+                        </Box>
+                      </a>
                     )}
                   </HStack>
 
@@ -407,34 +432,49 @@ const TaskList = ({ tasks, setTasks }: Props) => {
                 </VStack>
 
                 <HStack gap={0}>
-                  <IconButton
-                    aria-label="Star"
-                    variant="ghost"
-                    rounded="full"
-                    size="sm"
-                    onClick={() => updateTask(task.id, { starred: !task.starred })}
-                  >
-                    <Heart size={15} fill={task.starred ? "#FF69B4" : "none"} color="#FF69B4" />
-                  </IconButton>
-                  <IconButton
-                    aria-label="Subtasks"
-                    variant="ghost"
-                    rounded="full"
-                    size="sm"
-                    onClick={() => toggleExpand(task.id)}
-                    color="purple.300"
-                  >
-                    {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                  </IconButton>
-                  <IconButton
-                    aria-label="Archive"
-                    variant="ghost"
-                    rounded="full"
-                    size="sm"
-                    onClick={() => updateTask(task.id, { archived: true })}
-                  >
-                    <Archive size={15} color="#D1D1D1" />
-                  </IconButton>
+                  {task.source === "jira" ? (
+                    <IconButton
+                      aria-label="Open in Jira"
+                      variant="ghost"
+                      rounded="full"
+                      size="sm"
+                      onClick={() => window.open(task.jiraUrl, "_blank", "noreferrer")}
+                      color="#5B8FD6"
+                    >
+                      <ExternalLink size={15} />
+                    </IconButton>
+                  ) : (
+                    <>
+                      <IconButton
+                        aria-label="Star"
+                        variant="ghost"
+                        rounded="full"
+                        size="sm"
+                        onClick={() => updateTask(task.id, { starred: !task.starred })}
+                      >
+                        <Heart size={15} fill={task.starred ? "#FF69B4" : "none"} color="#FF69B4" />
+                      </IconButton>
+                      <IconButton
+                        aria-label="Subtasks"
+                        variant="ghost"
+                        rounded="full"
+                        size="sm"
+                        onClick={() => toggleExpand(task.id)}
+                        color="purple.300"
+                      >
+                        {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                      </IconButton>
+                      <IconButton
+                        aria-label="Archive"
+                        variant="ghost"
+                        rounded="full"
+                        size="sm"
+                        onClick={() => updateTask(task.id, { archived: true })}
+                      >
+                        <Archive size={15} color="#D1D1D1" />
+                      </IconButton>
+                    </>
+                  )}
                 </HStack>
               </HStack>
 

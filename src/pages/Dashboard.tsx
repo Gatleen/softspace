@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Box, Container, Image } from "@chakra-ui/react";
-import BannerImg from "../assets/SoftSpace Banner.png";
+import { Box, Container, Text } from "@chakra-ui/react";
+import RoomBanner from "../components/ui/RoomBanner";
 
 // Components
 import Header from "../components/Header";
@@ -20,6 +20,7 @@ import Games from "../components/Games";
 import FinanceTracker from "../components/FinanceTracker";
 import LearningTracker from "../components/LearningTracker";
 import Reminders, { TOAST_KEY } from "../components/Reminders";
+import { fetchJiraTasks } from "../lib/jiraTasks";
 
 interface Subtask {
   id: number;
@@ -39,7 +40,79 @@ interface Task {
   starred: boolean;
   archived: boolean;
   subtasks: Subtask[];
+  source?: "local" | "jira";
+  jiraKey?: string;
+  jiraUrl?: string;
 }
+
+// How often to re-poll Jira for due-date changes (ms).
+const JIRA_POLL_MS = 15 * 60 * 1000;
+
+/** "Today's Tasks" side card next to the greeting card (mockup dashboard hero row) */
+const TodaysTasksCard = ({ tasks }: { tasks: Task[] }) => {
+  const visible = tasks.filter((t) => !t.archived).slice(0, 4);
+  const remaining = tasks.filter((t) => !t.completed && !t.archived).length;
+
+  return (
+    <Box
+      w="300px"
+      flexShrink={0}
+      bg="white"
+      border="2.5px solid #FFDDEB"
+      borderRadius="24px"
+      boxShadow="0 6px 0 rgba(255,199,222,.45)"
+      overflow="hidden"
+      display="flex"
+      flexDirection="column"
+    >
+      <Box px="18px" py="14px" background="linear-gradient(135deg,#FFC2DA,#D9BFF7)">
+        <Text fontFamily="'Jersey 25', cursive" fontSize="23px" color="white" letterSpacing=".6px" textShadow="0 2px 0 rgba(196,87,127,.3)">
+          Today's Tasks
+        </Text>
+        <Text fontSize="10.5px" fontWeight="700" color="rgba(255,255,255,.9)">
+          {remaining} remaining
+        </Text>
+      </Box>
+      <Box px="18px" py="16px" display="flex" flexDirection="column" gap="9px">
+        {visible.length === 0 && (
+          <Text fontSize="11.5px" fontWeight="600" color="#C2AECF">
+            No tasks yet — add some from the task list below ✧
+          </Text>
+        )}
+        {visible.map((t) => (
+          <Box
+            key={t.id}
+            display="flex"
+            alignItems="center"
+            gap="9px"
+            px="12px"
+            py="8px"
+            borderRadius="999px"
+            bg={t.completed ? "#EDFBF1" : "#FFF1F2"}
+            border="2px solid"
+            borderColor={t.completed ? "#BFE8CD" : "#FBC9D2"}
+          >
+            <Box w="9px" h="9px" borderRadius="999px" flexShrink={0} bg={t.completed ? "#22C55E" : "#F43F5E"} />
+            <Text
+              fontSize="12.5px"
+              fontWeight="700"
+              color={t.completed ? "#9DB0A5" : "#5C4A63"}
+              textDecoration={t.completed ? "line-through" : "none"}
+              overflow="hidden"
+              textOverflow="ellipsis"
+              whiteSpace="nowrap"
+            >
+              {t.text}
+            </Text>
+          </Box>
+        ))}
+        <Text mt="2px" fontSize="11.5px" fontWeight="600" color="#C2AECF">
+          Add more from the task list below ✧
+        </Text>
+      </Box>
+    </Box>
+  );
+};
 
 const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -94,9 +167,19 @@ const Dashboard = () => {
     return () => { clearInterval(id); clearTimeout(dismissTimer); };
   }, []);
 
-  // 💡 NAVIGATION LOGIC
-  // We no longer need isNotebookOpen state because the "journal" view
-  // is just another string in currentView.
+  // Pull in Jira issues assigned to the user (read-only) and merge them alongside local tasks.
+  useEffect(() => {
+    let cancelled = false;
+    const sync = async () => {
+      const jiraTasks = await fetchJiraTasks();
+      if (cancelled) return;
+      setTasks((prev) => [...prev.filter((t) => t.source !== "jira"), ...jiraTasks]);
+    };
+    sync();
+    const id = setInterval(sync, JIRA_POLL_MS);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   const handleNavChange = (view: string) => {
     setCurrentView(view);
   };
@@ -105,136 +188,38 @@ const Dashboard = () => {
     return <PixelTimer onExit={() => setFocusMode(false)} />;
   }
 
+  const dateLabel = currentTime.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+
   return (
-    <Box
-      bg="linear-gradient(to bottom right, var(--chakra-colors-pink-50), var(--chakra-colors-purple-50))"
-      minH="100vh"
-      w="100%"
-      pb={10} // Added padding at bottom for better feel
-    >
+    <Box bg="#F7F1EA" minH="100vh" w="100%" pb={10}>
       <Container maxW="1400px" p={{ base: 4, md: 8 }}>
-        {/* Banner */}
-        <Box
-          w="100%"
-          borderRadius="2xl"
-          overflow="hidden"
-          mb={6}
-          boxShadow="md"
-          bg="blackAlpha.200"
-        >
-          <Image
-            src={BannerImg}
-            alt="Dashboard Banner"
-            w="100%"
-            h="auto"
-            maxH="300px"
-            objectFit="cover"
-            display="block"
-          />
+        <Box mb="18px">
+          <RoomBanner />
         </Box>
-        <Header currentTime={currentTime} setFocusMode={setFocusMode} />
 
-        {/* Today's Tasks Strip */}
-        {currentView === "dashboard" && (
+        <Box display="flex" gap="22px" alignItems="stretch" mb="22px" flexWrap="wrap">
+          <Header currentTime={currentTime} setFocusMode={setFocusMode} />
+          {currentView === "dashboard" && <TodaysTasksCard tasks={tasks} />}
+        </Box>
+
+        <Box display="flex" alignItems="center" gap="10px" mb="14px">
+          <Text fontFamily="'Jersey 25', cursive" fontSize="26px" color="#C0577E" letterSpacing="1px" whiteSpace="nowrap">
+            ˚♡ ⋅ ˚ MY ROOM ˚♡ ⋅ ˚
+          </Text>
           <Box
-            bg="white"
-            borderRadius="2xl"
-            px={6}
-            py={4}
-            mb={4}
-            boxShadow="0 4px 16px rgba(168,85,247,0.08)"
-            border="1.5px solid"
-            borderColor="purple.100"
-          >
-            <Box display="flex" alignItems="center" gap={2} mb={3}>
-              <Box w="8px" h="8px" borderRadius="full" bg="purple.400" flexShrink={0} />
-              <Box as="span" fontSize="xs" fontWeight="800" color="purple.500" letterSpacing="wider">
-                TODAY'S TASKS
-              </Box>
-              <Box
-                as="span"
-                ml="auto"
-                fontSize="xs"
-                fontWeight="700"
-                color="gray.400"
-              >
-                {tasks.filter((t) => !t.completed && !t.archived).length} remaining
-              </Box>
-            </Box>
-            {tasks.filter((t) => !t.archived).length === 0 ? (
-              <Box as="span" fontSize="sm" color="gray.400">
-                No tasks yet — add some from the task list below ✨
-              </Box>
-            ) : (
-              <Box
-                display="flex"
-                flexWrap="wrap"
-                gap={2}
-              >
-                {tasks
-                  .filter((t) => !t.archived)
-                  .slice(0, 8)
-                  .map((task) => (
-                    <Box
-                      key={task.id}
-                      display="inline-flex"
-                      alignItems="center"
-                      gap={2}
-                      px={3}
-                      py={1.5}
-                      borderRadius="full"
-                      bg={task.completed ? "green.50" : task.priority === "high" ? "red.50" : task.priority === "medium" ? "orange.50" : "purple.50"}
-                      border="1.5px solid"
-                      borderColor={task.completed ? "green.200" : task.priority === "high" ? "red.200" : task.priority === "medium" ? "orange.200" : "purple.100"}
-                      opacity={task.completed ? 0.6 : 1}
-                    >
-                      <Box
-                        w="8px"
-                        h="8px"
-                        borderRadius="full"
-                        flexShrink={0}
-                        bg={task.completed ? "green.400" : task.priority === "high" ? "red.400" : task.priority === "medium" ? "orange.400" : "purple.300"}
-                      />
-                      <Box
-                        as="span"
-                        fontSize="xs"
-                        fontWeight="700"
-                        color={task.completed ? "gray.400" : "gray.700"}
-                        textDecoration={task.completed ? "line-through" : "none"}
-                        maxW="160px"
-                        overflow="hidden"
-                        textOverflow="ellipsis"
-                        whiteSpace="nowrap"
-                      >
-                        {task.text}
-                      </Box>
-                    </Box>
-                  ))}
-                {tasks.filter((t) => !t.archived).length > 8 && (
-                  <Box
-                    display="inline-flex"
-                    alignItems="center"
-                    px={3}
-                    py={1.5}
-                    borderRadius="full"
-                    bg="gray.50"
-                    border="1.5px solid"
-                    borderColor="gray.200"
-                  >
-                    <Box as="span" fontSize="xs" fontWeight="700" color="gray.400">
-                      +{tasks.filter((t) => !t.archived).length - 8} more
-                    </Box>
-                  </Box>
-                )}
-              </Box>
-            )}
-          </Box>
-        )}
+            flex="1"
+            h="6px"
+            borderRadius="3px"
+            style={{ backgroundImage: "repeating-linear-gradient(90deg,#FFC2DA 0 13px,transparent 13px 24px)" }}
+          />
+          <Text fontSize="12px" fontWeight="700" color="#B79ACB" whiteSpace="nowrap">
+            {dateLabel}
+          </Text>
+        </Box>
 
-        {/* 🧭 The Navbar controls which string is set to currentView */}
-        <Navbar currentView={currentView} setView={handleNavChange} />
+        <Navbar currentView={currentView} setView={handleNavChange} onFocus={() => setFocusMode(true)} />
+
         {/* --- VIEW ROUTING --- */}
-        {/* 1. DASHBOARD VIEW */}
         {currentView === "dashboard" && (
           <Box
             display="grid"
@@ -276,26 +261,17 @@ const Dashboard = () => {
             </Box>
           </Box>
         )}
-        {/* 2. JOURNAL VIEW */}
         {currentView === "journal" && (
           <Box animation="fade-in 0.5s ease-in-out">
             <Notebook />
           </Box>
         )}
-        {/* 3. ACHIEVEMENTS VIEW */}
         {currentView === "achievements" && <Achievements />}
-        {/* 4. COMPANIONS VIEW */}
         {currentView === "companions" && <Companions />}
-        {/* 5. MOOD PICKER (If you have one) */}
-        {currentView === "mood" && <MoodTracker />}{" "}
-        {/* Assuming you have a MoodPicker component */}
-        {/* 6. GAMES VIEW (If you have one) */}
+        {currentView === "mood" && <MoodTracker />}
         {currentView === "games" && <Games />}
-        {/* 7. FINANCE VIEW */}
         {currentView === "finance" && <FinanceTracker />}
-        {/* 8. LEARNING VIEW */}
         {currentView === "learning" && <LearningTracker />}
-        {/* 9. REMINDERS VIEW */}
         {currentView === "reminders" && <Reminders />}
       </Container>
 
@@ -310,9 +286,9 @@ const Dashboard = () => {
           borderRadius="2xl"
           px={5}
           py={4}
-          boxShadow="0 8px 32px rgba(168,85,247,0.22)"
+          boxShadow="0 8px 32px rgba(196,87,127,.22)"
           border="2px solid"
-          borderColor="pink.200"
+          borderColor="#FFDDEB"
           minW="280px"
           maxW="380px"
           display="flex"
@@ -322,7 +298,7 @@ const Dashboard = () => {
         >
           <Box fontSize="xl" flexShrink={0} lineHeight="1.4">⏰</Box>
           <Box flex={1} minW={0}>
-            <Box as="span" fontSize="sm" fontWeight="900" color="purple.600" display="block">
+            <Box as="span" fontSize="sm" fontWeight="900" color="#C0577E" display="block">
               {reminderToast.title}
             </Box>
             {reminderToast.note && (

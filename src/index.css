@@ -1,5 +1,5 @@
 :root {
-  font-family: "Jersey 25", system-ui, sans-serif;
+  font-family: "Quicksand", system-ui, sans-serif;
   font-size: 18px;
   line-height: 1.5;
   font-weight: 400;
@@ -15,6 +15,7 @@ body {
   height: 100%; /* Ensure full height */
   margin: 0;
   padding: 0;
+  background: #F7F1EA;
   /* This effectively forces the scrollbar if content is too long */
   overflow-y: auto;
 }
@@ -22,4 +23,30 @@ body {
 #root {
   min-height: 100%; /* Allow the app to grow */
   width: 100%;
+}
+
+@keyframes ss-spin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+@keyframes ss-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes ss-twinkle {
+  0%, 100% { opacity: .35; transform: scale(.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+@keyframes ss-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #FFC8DE;
+  border-radius: 8px;
 }

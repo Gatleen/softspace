@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Box, Text, VStack, Center, Image, HStack, Circle } from "@chakra-ui/react";
-import { Heart } from "lucide-react";
 
 const PLAYLIST_DATA = [
   {
@@ -33,44 +32,38 @@ const MusicPlayer = () => {
   return (
     <Box
       bg="white"
-      borderRadius="3xl"
-      border="1.5px solid"
-      borderColor="purple.100"
-      boxShadow="0 8px 32px rgba(109,40,217,0.12)"
+      borderRadius="24px"
+      border="2.5px solid"
+      borderColor="#EEDCFB"
+      boxShadow="0 6px 0 rgba(205,180,246,.35)"
       overflow="hidden"
     >
       {/* ── Gradient header ── */}
       <Box
-        bg="linear-gradient(135deg, #f9a8d4 0%, #c084fc 100%)"
-        px={6} pt={5} pb={6}
+        background="linear-gradient(135deg,#FFC2DA,#D9BFF7)"
+        px={5} pt={4} pb={4}
         position="relative"
         overflow="hidden"
       >
-        {/* Decorative blobs */}
-        <Box position="absolute" top="-20px" right="-20px" w="90px" h="90px"
-          borderRadius="full" bg="whiteAlpha.100" />
-        <Box position="absolute" bottom="-30px" left="20px" w="70px" h="70px"
-          borderRadius="full" bg="whiteAlpha.50" />
-
         <HStack justify="space-between" position="relative">
           <HStack gap={3}>
             <Box
-              w="42px" h="42px" borderRadius="xl"
-              bg="whiteAlpha.200" border="1px solid" borderColor="whiteAlpha.300"
+              w="42px" h="42px" borderRadius="14px"
+              bg="rgba(255,255,255,.35)"
               display="flex" alignItems="center" justifyContent="center" flexShrink={0}
             >
               <Image src="/icons/CD.png" alt="CD" boxSize="26px" objectFit="contain" />
             </Box>
             <VStack align="start" gap={0}>
-              <Text fontSize="lg" fontWeight="900" color="white" lineHeight="1">
+              <Text fontFamily="'Jersey 25', cursive" fontSize="24px" color="white" letterSpacing=".6px" textShadow="0 2px 0 rgba(196,87,127,.3)" lineHeight="1.1">
                 Now Vibe-ing
               </Text>
-              <Text fontSize="xs" color="whiteAlpha.700" fontWeight="bold">
+              <Text fontSize="10.5px" color="rgba(255,255,255,.9)" fontWeight="700">
                 {currentTrack.name}
               </Text>
             </VStack>
           </HStack>
-          <Heart size={18} color="#f9a8d4" fill="#f9a8d4" />
+          <Text fontSize="16px" color="white">♡</Text>
         </HStack>
       </Box>
 
@@ -145,8 +138,8 @@ const MusicPlayer = () => {
             {PLAYLIST_DATA.map((_, index) => (
               <Circle
                 key={index}
-                size={currentIdx === index ? "12px" : "8px"}
-                bg={currentIdx === index ? "purple.400" : "purple.100"}
+                size={currentIdx === index ? "13px" : "9px"}
+                bg={currentIdx === index ? "#B98BE8" : "#EEDCFB"}
                 cursor="pointer"
                 onClick={() => setCurrentIdx(index)}
                 transition="all 0.2s"
@@ -156,8 +149,8 @@ const MusicPlayer = () => {
           </HStack>
 
           {/* Hint */}
-          <Text fontSize="xs" color="gray.400" fontWeight="bold">
-            Log in to Spotify for full songs ✨
+          <Text fontSize="11px" color="#C2AECF" fontWeight="700">
+            Log in to Spotify for full songs ✧
           </Text>
 
           {/* Spotify embed */}

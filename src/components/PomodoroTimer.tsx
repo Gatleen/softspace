@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import {
-  Box, Button, HStack, Text, VStack, Input, Image,
+  Box, HStack, Text, VStack, Input, Image,
 } from "@chakra-ui/react";
-import { Play, Pause, RotateCcw, X, Volume2, VolumeX, Coffee, BookOpen, Zap } from "lucide-react";
+import { X, Volume2, VolumeX, Coffee, BookOpen, Zap } from "lucide-react";
 
 // ─── Theme config ─────────────────────────────────────────────────────────────
 const THEMES = {
@@ -31,6 +31,9 @@ const MODES: Record<TimerMode, { label: string; defaultMins: number; icon: React
   short: { label: "Short Break", defaultMins: 5,  icon: <Coffee   size={14} />, color: "#0891b2" },
   long:  { label: "Long Break",  defaultMins: 15, icon: <Zap      size={14} />, color: "#059669" },
 };
+
+// Emoji shown on the mode-switcher pills (design-only, doesn't touch MODES data)
+const MODE_EMOJI: Record<TimerMode, string> = { focus: "📖", short: "☕", long: "⚡" };
 
 interface Props { onExit: () => void; }
 
@@ -120,11 +123,13 @@ const PomodoroTimer = ({ onExit }: Props) => {
   const [musicOn,   setMusicOn]   = useState(false);
   const [trackKey,  setTrackKey]  = useState<keyof typeof TRACKS>("meadows");
   const [sessions,  setSessions]  = useState(0);
+  // UI-only: whether the immersive full-bleed scene view is showing (no timer/session
+  // state lives here — it purely toggles which JSX is rendered).
+  const [sceneFullscreen, setSceneFullscreen] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const theme = THEMES[themeKey];
   const pct   = totalSecs > 0 ? timeLeft / totalSecs : 0;
-  const col   = sandColor(pct);
 
   // Audio: reinitialise when track selection changes
   useEffect(() => {
@@ -197,213 +202,415 @@ const PomodoroTimer = ({ onExit }: Props) => {
     if (Notification.permission === "default") Notification.requestPermission();
   };
 
-  return (
-    <Box
-      w="100%"
-      minH="100vh"
-      py={10}
-      bg={theme.bg}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      flexDirection="column"
-      transition="background-color 0.8s ease"
-    >
-      <Box
-        p={8}
-        borderRadius="3xl"
-        bg="white"
-        boxShadow="0 20px 60px rgba(0,0,0,0.12)"
-        textAlign="center"
-        maxW="400px"
-        w="90%"
-        border="3px solid"
-        borderColor="whiteAlpha.800"
-      >
-        {/* ── Theme image ── */}
-        <Box mb={4} borderRadius="2xl" overflow="hidden"
-          border="3px solid" style={{ borderColor: theme.bg }}>
-          <Image src={theme.image} alt={theme.name}
-            objectFit="contain" w="100%" maxH="160px" opacity={0.95}
-            transition="all 0.5s ease" bg={theme.bg} />
-        </Box>
+  // ── Shared render bits (kept as small inline helpers so both the in-dashboard
+  //    panel and the full-screen scene render identical, wired-up controls) ──
 
-        {/* ── Theme dots ── */}
-        <HStack justify="center" mb={3} gap={3}>
-          {(Object.keys(THEMES) as (keyof typeof THEMES)[]).map((k) => (
-            <Box
-              key={k}
-              as="button"
-              w="26px" h="26px" borderRadius="full"
-              style={{ background: THEMES[k].bg }}
-              border={themeKey === k ? `3px solid ${THEMES[k].accent}` : "2px solid transparent"}
-              transition="all 0.2s"
-              onClick={() => { setThemeKey(k); setRunning(false); }}
-              _hover={{ transform: "scale(1.25)" }}
-            />
-          ))}
-        </HStack>
-
-        <Text fontWeight="800" fontSize="md" mb={4} style={{ color: theme.accent }}>
-          {theme.name}
-        </Text>
-
-        {/* ── Mode tabs ── */}
-        <HStack justify="center" mb={5} bg="gray.50" p="5px" borderRadius="full" gap={1}>
-          {(Object.keys(MODES) as TimerMode[]).map((m) => {
-            const active = mode === m;
-            return (
-              <Box
-                key={m}
-                as="button"
-                flex={1}
-                px={3} py="6px"
-                borderRadius="full"
-                style={{ background: active ? MODES[m].color : "transparent" }}
-                transition="all 0.2s"
-                onClick={() => switchMode(m)}
-              >
-                <HStack justify="center" gap={1}>
-                  <Box style={{ color: active ? "white" : "#9ca3af" }}>
-                    {MODES[m].icon}
-                  </Box>
-                  <Text
-                    fontSize="11px"
-                    fontWeight="800"
-                    color={active ? "white" : "gray.400"}
-                  >
-                    {MODES[m].label}
-                  </Text>
-                </HStack>
-              </Box>
-            );
-          })}
-        </HStack>
-
-        {/* ── Hourglass + time ── */}
-        <VStack gap={1} mb={4}>
-          <Hourglass pct={pct} running={running} />
-          <Text
-            fontSize="5xl"
-            fontWeight="900"
-            letterSpacing="tight"
-            lineHeight="1"
-            style={{ color: theme.accent }}
-            transition="color 0.5s ease"
+  const ModeSwitcher = () => (
+    <HStack gap="10px">
+      {(Object.keys(MODES) as TimerMode[]).map((m) => {
+        const active = mode === m;
+        const mins = m === "focus" ? focusMins : MODES[m].defaultMins;
+        return (
+          <Box
+            key={m}
+            as="button"
+            onClick={() => switchMode(m)}
+            px="18px" py="10px"
+            borderRadius="999px"
+            border={active ? "2.5px solid white" : "2px solid #FFDDEB"}
+            style={{ background: active ? "linear-gradient(135deg,#FFC2DA,#CDB4F6)" : "white" }}
+            boxShadow={active ? "0 5px 0 rgba(196,87,127,.22)" : "none"}
+            transition="transform 0.15s ease"
+            _hover={{ transform: "translateY(-2px)" }}
           >
-            {fmt(timeLeft)}
-          </Text>
-          {sessions > 0 && (
-            <Text fontSize="xs" color="gray.400" fontWeight="700" mt={1}>
-              🍅 {sessions} session{sessions !== 1 ? "s" : ""} done today
+            <Text
+              fontFamily="'Jersey 25', cursive"
+              fontSize="16px"
+              color={active ? "white" : "#F27DAB"}
+              style={active ? { textShadow: "0 2px 0 rgba(196,87,127,.3)" } : undefined}
+            >
+              {MODE_EMOJI[m]} {MODES[m].label} · {mins}
             </Text>
-          )}
-        </VStack>
+          </Box>
+        );
+      })}
+    </HStack>
+  );
 
-        {/* ── Controls ── */}
-        <VStack gap={3}>
-          <HStack gap={3} justify="center">
-            {/* Play / Pause */}
-            <Box
-              as="button"
-              w="56px" h="56px"
-              borderRadius="full"
-              display="flex" alignItems="center" justifyContent="center"
-              color="white"
-              style={{ background: theme.accent }}
-              boxShadow={`0 4px 16px ${theme.accent}66`}
-              transition="all 0.2s"
-              _hover={{ transform: "scale(1.08)" }}
-              _active={{ transform: "scale(0.95)" }}
-              onClick={() => { setRunning((r) => !r); requestNotifPerm(); }}
-            >
-              {running ? <Pause size={22} /> : <Play size={22} />}
+  const ControlButtons = ({ big = false }: { big?: boolean }) => (
+    <HStack gap="12px">
+      <Box
+        as="button"
+        onClick={() => { setRunning((r) => !r); requestNotifPerm(); }}
+        px={big ? "30px" : "24px"} py={big ? "14px" : "12px"}
+        borderRadius="999px"
+        style={{ background: "linear-gradient(135deg,#FFC2DA,#CDB4F6)" }}
+        border="2.5px solid white"
+        boxShadow="0 5px 0 rgba(196,87,127,.22)"
+        transition="transform 0.15s ease"
+        _hover={{ transform: "translateY(-2px)" }}
+      >
+        <Text
+          fontFamily="'Jersey 25', cursive"
+          fontSize={big ? "20px" : "18px"}
+          color="white"
+          style={{ textShadow: "0 2px 0 rgba(196,87,127,.3)" }}
+        >
+          {running ? "❚❚ Pause" : "▶ Start"}
+        </Text>
+      </Box>
+      <Box
+        as="button"
+        onClick={reset}
+        px={big ? "30px" : "24px"} py={big ? "14px" : "12px"}
+        borderRadius="999px"
+        bg="white"
+        border="2px solid #FFDDEB"
+        transition="transform 0.15s ease"
+        _hover={{ transform: "translateY(-2px)" }}
+      >
+        <Text fontFamily="'Jersey 25', cursive" fontSize={big ? "20px" : "18px"} color="#F27DAB">
+          ↻ Reset
+        </Text>
+      </Box>
+    </HStack>
+  );
+
+  const TimerDisplay = ({ timerSize = "80px" }: { timerSize?: string }) => (
+    <>
+      <Box
+        w="170px" h="230px"
+        borderRadius="20px"
+        overflow="hidden"
+        bg="#FFF6FA"
+        border="3px dashed #FFC8DE"
+        display="flex" alignItems="center" justifyContent="center"
+      >
+        <Hourglass pct={pct} running={running} />
+      </Box>
+      <Text
+        fontFamily="'Jersey 25', cursive"
+        fontSize={timerSize}
+        lineHeight="1"
+        color="#C0577E"
+        letterSpacing="2px"
+      >
+        {fmt(timeLeft)}
+      </Text>
+      <Text fontSize="12.5px" fontWeight="800" letterSpacing="2px" color="#B79ACB" textTransform="uppercase">
+        {MODES[mode].label} Session{sessions > 0 ? ` · ${sessions} done today` : ""}
+      </Text>
+      {mode === "focus" && (
+        <HStack gap="8px">
+          <Text fontSize="11px" fontWeight="700" color="#B79ACB">Minutes:</Text>
+          <Input
+            value={focusMins}
+            onChange={(e) => onFocusMinsChange(e.target.value)}
+            type="number"
+            w="64px"
+            size="sm"
+            textAlign="center"
+            borderRadius="999px"
+            border="2px solid #FFDDEB"
+            bg="white"
+            _focus={{ borderColor: "#F27DAB", boxShadow: "0 0 0 2px rgba(242,125,171,.25)" }}
+          />
+        </HStack>
+      )}
+    </>
+  );
+
+  const NowPlayingChip = ({ compact = false }: { compact?: boolean }) => (
+    <HStack
+      bg="rgba(255,255,255,.85)"
+      border="2.5px solid white"
+      borderRadius="999px"
+      px={compact ? "14px" : "16px"}
+      py={compact ? "8px" : "10px"}
+      gap="8px"
+    >
+      <Image
+        src="/icons/CD.png"
+        alt="CD"
+        boxSize="20px"
+        style={{ animation: musicOn && running ? "ss-spin 4s linear infinite" : "none" }}
+      />
+      <Text fontSize="11.5px" fontWeight="700" color="#5C4A63">
+        {TRACKS[trackKey].label}
+      </Text>
+    </HStack>
+  );
+
+  // ── Full-screen immersive scene mode ──────────────────────────────────────
+  if (sceneFullscreen) {
+    return (
+      <Box position="fixed" inset="0" zIndex={1000} overflow="hidden">
+        <Image
+          src={theme.image}
+          alt={theme.name}
+          position="absolute" inset="0"
+          w="100%" h="100%"
+          objectFit="cover"
+        />
+        <Box
+          position="absolute" inset="0"
+          style={{
+            background:
+              "linear-gradient(180deg,rgba(255,249,252,.55) 0%,rgba(255,233,241,.25) 40%,rgba(122,90,160,.35) 100%)",
+          }}
+        />
+
+        <Box position="relative" zIndex={1} h="100%" display="flex" flexDirection="column" justifyContent="space-between" p="30px">
+          {/* Top row */}
+          <HStack justify="space-between">
+            <Box bg="rgba(255,255,255,.85)" border="2.5px solid white" borderRadius="999px" px="18px" py="10px">
+              <Text fontFamily="'Jersey 25', cursive" fontSize="16px" color="#7A5AA6">
+                {theme.name}
+              </Text>
             </Box>
-
-            {/* Reset */}
             <Box
               as="button"
-              w="44px" h="44px"
-              borderRadius="full"
-              display="flex" alignItems="center" justifyContent="center"
-              bg="gray.100"
-              color="gray.500"
-              transition="all 0.2s"
-              _hover={{ bg: "gray.200", transform: "rotate(-30deg)" }}
-              onClick={reset}
+              onClick={() => setSceneFullscreen(false)}
+              bg="rgba(255,255,255,.85)" border="2.5px solid white" borderRadius="999px"
+              px="18px" py="10px"
+              transition="transform 0.15s ease"
+              _hover={{ transform: "translateY(-2px)" }}
             >
-              <RotateCcw size={18} />
-            </Box>
-
-            {/* Music */}
-            <Box
-              as="button"
-              w="44px" h="44px"
-              borderRadius="full"
-              display="flex" alignItems="center" justifyContent="center"
-              style={{ background: musicOn ? theme.accent : undefined }}
-              bg={musicOn ? undefined : "gray.100"}
-              color={musicOn ? "white" : "gray.400"}
-              transition="all 0.2s"
-              _hover={{ transform: "scale(1.05)" }}
-              onClick={() => setMusicOn((m) => !m)}
-              title={musicOn ? "Mute music" : "Play ambient music"}
-            >
-              {musicOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              <Text fontFamily="'Jersey 25', cursive" fontSize="16px" color="#7A5AA6">
+                ↙ Exit full screen
+              </Text>
             </Box>
           </HStack>
 
-          {/* Custom focus duration */}
-          {mode === "focus" && (
-            <HStack justify="center">
-              <Text fontSize="sm" fontWeight="700" color="gray.400">
-                Focus (mins):
-              </Text>
-              <Input
-                w="64px"
-                size="sm"
-                type="number"
-                value={focusMins}
-                onChange={(e) => onFocusMinsChange(e.target.value)}
-                textAlign="center"
-                borderRadius="lg"
-                borderColor="gray.200"
-                _focus={{ borderColor: col, boxShadow: `0 0 0 2px ${col}33` }}
-              />
+          {/* Centered card */}
+          <Box
+            alignSelf="center"
+            bg="rgba(255,255,255,.72)"
+            border="3px solid white"
+            borderRadius="34px"
+            padding="34px 46px"
+            boxShadow="0 12px 40px rgba(122,90,160,.25)"
+            display="flex" flexDirection="column" alignItems="center" gap="16px"
+          >
+            {TimerDisplay({ timerSize: "104px" })}
+            {ControlButtons({ big: true })}
+          </Box>
+
+          {/* Bottom row */}
+          <HStack justify="space-between" align="flex-end">
+            {NowPlayingChip({ compact: true })}
+            <HStack gap="8px">
+              {(Object.keys(THEMES) as (keyof typeof THEMES)[]).map((k) => (
+                <Box
+                  key={k}
+                  as="button"
+                  onClick={() => setThemeKey(k)}
+                  w="52px" h="52px"
+                  borderRadius="12px"
+                  overflow="hidden"
+                  border={themeKey === k ? "2.5px solid #F27DAB" : "2.5px solid white"}
+                  transition="transform 0.15s ease"
+                  _hover={{ transform: "translateY(-2px)" }}
+                >
+                  <Image src={THEMES[k].image} alt={THEMES[k].name} w="100%" h="100%" objectFit="cover" />
+                </Box>
+              ))}
             </HStack>
-          )}
-
-          {/* Music track selector */}
-          {musicOn && (
-            <Box px={3} py={2.5} bg="gray.50" borderRadius="xl" w="100%">
-              <Text fontSize="10px" fontWeight="800" color="gray.400" letterSpacing="wider" mb={1.5}>
-                🎵 SELECT TRACK
-              </Text>
-              <select
-                value={trackKey}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "10px", border: "none",
-                  background: "white", fontSize: "12px", fontWeight: 600, color: "#374151",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)", outline: "none", cursor: "pointer" }}
-                onChange={(e) => setTrackKey(e.target.value as keyof typeof TRACKS)}
-              >
-                {(Object.entries(TRACKS) as [keyof typeof TRACKS, { label: string; src: string }][]).map(([k, t]) => (
-                  <option key={k} value={k}>{t.label}</option>
-                ))}
-              </select>
-            </Box>
-          )}
-        </VStack>
-
-        {/* ── Exit ── */}
-        <Button
-          mt={6} variant="ghost" size="sm"
-          color="gray.300"
-          _hover={{ color: "gray.600", bg: "transparent" }}
-          onClick={onExit}
-        >
-          <X size={14} style={{ marginRight: "5px" }} /> Exit Focus
-        </Button>
+          </HStack>
+        </Box>
       </Box>
+    );
+  }
+
+  // ── In-dashboard Focus panel ───────────────────────────────────────────────
+  return (
+    <Box
+      borderRadius="26px"
+      overflow="hidden"
+      border="3px solid #EEDCFB"
+      style={{ background: "linear-gradient(160deg,#F4EEFF,#FDF2F8 60%,#F1F8FE)" }}
+      position="relative"
+    >
+      {/* Top row */}
+      <HStack justify="space-between" padding="30px 34px">
+        {ModeSwitcher()}
+        <Box
+          as="button"
+          onClick={onExit}
+          w="40px" h="40px"
+          borderRadius="full"
+          bg="white"
+          border="2px solid #FFDDEB"
+          color="#F27DAB"
+          display="flex" alignItems="center" justifyContent="center"
+          transition="transform 0.15s ease"
+          _hover={{ transform: "scale(1.08)" }}
+        >
+          <X size={18} />
+        </Box>
+      </HStack>
+
+      {/* Body */}
+      <HStack align="stretch" gap="26px" px="34px" pb="34px">
+        {/* Left: hourglass + timer */}
+        <Box
+          flex="1"
+          bg="rgba(255,255,255,.75)"
+          border="2.5px solid white"
+          borderRadius="24px"
+          padding="30px"
+          boxShadow="0 6px 0 rgba(205,180,246,.25)"
+          display="flex" flexDirection="column" alignItems="center" gap="14px"
+        >
+          {TimerDisplay({ timerSize: "80px" })}
+          {ControlButtons({})}
+        </Box>
+
+        {/* Right: scene + ambient sound + mascot */}
+        <VStack w="400px" flexShrink={0} gap="18px" align="stretch">
+          {/* SCENE card */}
+          <Box
+            bg="rgba(255,255,255,.85)"
+            border="2.5px solid white"
+            borderRadius="24px"
+            padding="20px"
+            boxShadow="0 6px 0 rgba(205,180,246,.25)"
+          >
+            <HStack justify="space-between" mb="12px">
+              <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#8A6BD1">
+                SCENE
+              </Text>
+              <Text fontSize="10.5px" fontWeight="700" color="#C2AECF">
+                tap to go full-screen
+              </Text>
+            </HStack>
+            <Box display="grid" style={{ gridTemplateColumns: "repeat(2,1fr)" }} gap="10px">
+              {(Object.keys(THEMES) as (keyof typeof THEMES)[]).map((k) => {
+                const t = THEMES[k];
+                const active = themeKey === k;
+                return (
+                  <Box
+                    key={k}
+                    as="button"
+                    onClick={() => { setThemeKey(k); setSceneFullscreen(true); }}
+                    borderRadius="16px"
+                    overflow="hidden"
+                    border={active ? "2.5px solid #F27DAB" : "2.5px solid #FFE9F1"}
+                    bg="white"
+                    textAlign="left"
+                    transition="transform 0.15s ease"
+                    _hover={{ transform: "translateY(-2px)" }}
+                  >
+                    <Image src={t.image} alt={t.name} h="84px" w="100%" objectFit="cover" />
+                    <Box px="8px" py="6px">
+                      <Text fontSize="10.5px" fontWeight="800" color="#5C4A63">
+                        {t.name}
+                      </Text>
+                      <Text fontSize="9.5px" fontWeight="700" color={active ? "#F27DAB" : "#C2AECF"}>
+                        {active ? "playing ♡" : "tap to enter"}
+                      </Text>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+
+          {/* AMBIENT SOUND card */}
+          <Box
+            bg="rgba(255,255,255,.85)"
+            border="2.5px solid white"
+            borderRadius="24px"
+            padding="20px"
+            boxShadow="0 6px 0 rgba(205,180,246,.25)"
+          >
+            <HStack justify="space-between" mb="12px">
+              <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#8A6BD1">
+                AMBIENT SOUND
+              </Text>
+              <Box
+                as="button"
+                onClick={() => setMusicOn((m) => !m)}
+                title={musicOn ? "Mute music" : "Play ambient music"}
+                w="30px" h="30px"
+                borderRadius="full"
+                display="flex" alignItems="center" justifyContent="center"
+                style={{ background: musicOn ? "linear-gradient(135deg,#FFC2DA,#CDB4F6)" : "white" }}
+                border={musicOn ? "2px solid white" : "2px solid #FFDDEB"}
+                color={musicOn ? "white" : "#B79ACB"}
+                transition="transform 0.15s ease"
+                _hover={{ transform: "scale(1.08)" }}
+              >
+                {musicOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              </Box>
+            </HStack>
+
+            <HStack wrap="wrap" gap="8px" mb="12px">
+              {(Object.entries(TRACKS) as [keyof typeof TRACKS, { label: string; src: string }][]).map(([k, t]) => {
+                const active = trackKey === k;
+                return (
+                  <Box
+                    key={k}
+                    as="button"
+                    onClick={() => setTrackKey(k)}
+                    px="12px" py="6px"
+                    borderRadius="999px"
+                    bg={active ? "#FFF0F6" : "#FFF9FC"}
+                    border={active ? "2px solid #F27DAB" : "2px solid #FFE9F1"}
+                    color={active ? "#F27DAB" : "#8A7690"}
+                    fontSize="11px"
+                    fontWeight="700"
+                    transition="transform 0.15s ease"
+                    _hover={{ transform: "translateY(-1px)" }}
+                  >
+                    {t.label}
+                  </Box>
+                );
+              })}
+            </HStack>
+
+            <HStack bg="#FFF9FC" border="2px solid #FFE9F1" borderRadius="16px" padding="10px" gap="10px">
+              <Image
+                src="/icons/CD.png"
+                alt="CD"
+                boxSize="30px"
+                style={{ animation: musicOn && running ? "ss-spin 4s linear infinite" : "none" }}
+              />
+              <VStack align="start" gap="0" flex="1">
+                <Text fontSize="11.5px" fontWeight="800" color="#5C4A63">
+                  {TRACKS[trackKey].label}
+                </Text>
+                <HStack gap="3px" mt="4px">
+                  {[6, 11, 15, 9, 13, 7].map((h, i) => (
+                    <Box key={i} w="3px" h={`${h}px`} borderRadius="2px" bg="#F9A8CB" />
+                  ))}
+                </HStack>
+              </VStack>
+            </HStack>
+          </Box>
+
+          {/* Mascot + quote */}
+          <HStack
+            bg="rgba(255,255,255,.85)"
+            border="2.5px solid white"
+            borderRadius="24px"
+            padding="16px"
+            gap="12px"
+            boxShadow="0 6px 0 rgba(205,180,246,.25)"
+          >
+            <Image
+              src="/Llama1.png"
+              alt=""
+              boxSize="40px"
+              objectFit="contain"
+              style={{ imageRendering: "pixelated", animation: "ss-float 5s ease-in-out infinite" }}
+            />
+            <Text fontSize="12.5px" fontWeight="700" fontStyle="italic" color="#8A7690">
+              "Every focused minute blooms into progress." ✧
+            </Text>
+          </HStack>
+        </VStack>
+      </HStack>
     </Box>
   );
 };
