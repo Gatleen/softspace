@@ -55,7 +55,7 @@ const TodaysTasksCard = ({ tasks }: { tasks: Task[] }) => {
 
   return (
     <Box
-      w="300px"
+      w={{ base: "100%", lg: "300px" }}
       flexShrink={0}
       bg="white"
       border="2.5px solid #FFDDEB"
@@ -193,19 +193,26 @@ const Dashboard = () => {
           <RoomBanner />
         </Box>
 
-        <Box display="flex" gap="22px" alignItems="stretch" mb="22px" flexWrap="wrap">
+        <Box display="flex" flexDirection={{ base: "column", lg: "row" }} gap="22px" alignItems="stretch" mb="22px">
           <Header currentTime={currentTime} setFocusMode={setFocusMode} />
           {currentView === "dashboard" && <TodaysTasksCard tasks={tasks} />}
         </Box>
 
-        <Box display="flex" alignItems="center" gap="10px" mb="14px">
-          <Text fontFamily="'Jersey 25', cursive" fontSize="26px" color="#C0577E" letterSpacing="1px" whiteSpace="nowrap">
+        <Box
+          display="flex"
+          flexDirection={{ base: "column", sm: "row" }}
+          alignItems={{ base: "flex-start", sm: "center" }}
+          gap={{ base: "4px", sm: "10px" }}
+          mb="14px"
+        >
+          <Text fontFamily="'Jersey 25', cursive" fontSize={{ base: "20px", sm: "26px" }} color="#C0577E" letterSpacing="1px" whiteSpace="nowrap">
             ˚♡ ⋅ ˚ MY ROOM ˚♡ ⋅ ˚
           </Text>
           <Box
             flex="1"
             h="6px"
             borderRadius="3px"
+            display={{ base: "none", sm: "block" }}
             style={{ backgroundImage: "repeating-linear-gradient(90deg,#FFC2DA 0 13px,transparent 13px 24px)" }}
           />
           <Text fontSize="12px" fontWeight="700" color="#B79ACB" whiteSpace="nowrap">
@@ -285,7 +292,8 @@ const Dashboard = () => {
           boxShadow="0 8px 32px rgba(196,87,127,.22)"
           border="2px solid"
           borderColor="#FFDDEB"
-          minW="280px"
+          minW={{ base: "0", md: "280px" }}
+          w={{ base: "90vw", md: "auto" }}
           maxW="380px"
           display="flex"
           alignItems="flex-start"

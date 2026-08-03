@@ -56,10 +56,18 @@ const CharacterProfile = ({ char }: { char: Character }) => {
         }}
       />
 
-      <Box display="flex" gap="24px" p="26px 30px 30px" alignItems="flex-start">
+      <Box
+        display="flex"
+        flexDirection={{ base: "column", lg: "row" }}
+        gap="24px"
+        p={{ base: "18px 16px 20px", lg: "26px 30px 30px" }}
+        alignItems="flex-start"
+      >
         {/* Left: portrait + voice line */}
         <Box
-          w="180px"
+          w={{ base: "100%", lg: "180px" }}
+          maxW={{ base: "220px", lg: "180px" }}
+          mx={{ base: "auto", lg: "0" }}
           flexShrink={0}
           p="16px"
           borderRadius="22px"
@@ -170,7 +178,7 @@ const CharacterProfile = ({ char }: { char: Character }) => {
             </Text>
           </Box>
 
-          <Box display="grid" style={{ gridTemplateColumns: "1fr 1fr" }} gap="14px" mt="16px">
+          <Box display="grid" gridTemplateColumns={{ base: "1fr", sm: "1fr 1fr" }} gap="14px" mt="16px">
             <Box p="14px" borderRadius="16px" background="#FFF9FC" border="2px solid #FFE9F1">
               <Text fontSize="10px" fontWeight="800" color="#F27DAB" letterSpacing="1px" mb="6px">
                 LIKES ♡
@@ -199,7 +207,7 @@ const CharacterProfile = ({ char }: { char: Character }) => {
             </Box>
           </Box>
 
-          <Box display="grid" style={{ gridTemplateColumns: "1fr 1fr" }} gap="14px" mt="14px">
+          <Box display="grid" gridTemplateColumns={{ base: "1fr", sm: "1fr 1fr" }} gap="14px" mt="14px">
             <Box p="14px" borderRadius="16px" background="#F1F8FE" border="2px solid #D8E9FB">
               <Text fontSize="10px" fontWeight="800" color="#5B8FD6" letterSpacing="1px" mb="4px">
                 PERSONALITY

@@ -243,7 +243,7 @@ const Notebook = () => {
 
       <Box display="flex" gap="22px" alignItems="flex-start" flexWrap="wrap">
         {/* 1️⃣ LEFT SIDEBAR — Entries */}
-        <Box w="300px" flexShrink={0}>
+        <Box w={{ base: "100%", lg: "300px" }} flexShrink={0}>
           <SoftSpaceCard icon="/icons/Notebook.png" title="Entries" subtitle="Newest first">
             <Box
               as="button"

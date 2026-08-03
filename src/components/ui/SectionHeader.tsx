@@ -13,10 +13,16 @@ interface SectionHeaderProps {
  */
 const SectionHeader = ({ title, meta }: SectionHeaderProps) => {
   return (
-    <Box display="flex" alignItems="center" gap="12px" mb="20px">
+    <Box
+      display="flex"
+      flexDirection={{ base: "column", md: "row" }}
+      alignItems={{ base: "flex-start", md: "center" }}
+      gap={{ base: "6px", md: "12px" }}
+      mb="20px"
+    >
       <Text
         fontFamily="'Jersey 25', cursive"
-        fontSize="32px"
+        fontSize={{ base: "22px", md: "32px" }}
         color="#C0577E"
         letterSpacing="1px"
         whiteSpace="nowrap"
@@ -27,13 +33,14 @@ const SectionHeader = ({ title, meta }: SectionHeaderProps) => {
         flex="1"
         h="6px"
         borderRadius="3px"
+        display={{ base: "none", md: "block" }}
         style={{
           backgroundImage:
             "repeating-linear-gradient(90deg,#FFC2DA 0 13px,transparent 13px 24px)",
         }}
       />
       {meta && (
-        <Box fontSize="12px" fontWeight="700" color="#B79ACB" whiteSpace="nowrap">
+        <Box fontSize={{ base: "11px", md: "12px" }} fontWeight="700" color="#B79ACB">
           {meta}
         </Box>
       )}

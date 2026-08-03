@@ -362,7 +362,7 @@ const PomodoroTimer = ({ onExit }: Props) => {
 
         <Box position="relative" zIndex={1} h="100%" display="flex" flexDirection="column" justifyContent="space-between" p="30px">
           {/* Top row */}
-          <HStack justify="space-between">
+          <HStack justify="space-between" flexWrap="wrap" gap={{ base: "10px", md: "0" }}>
             <Box bg="rgba(255,255,255,.85)" border="2.5px solid white" borderRadius="999px" px="18px" py="10px">
               <Text fontFamily="'Jersey 25', cursive" fontSize="16px" color="#7A5AA6">
                 {theme.name}
@@ -385,10 +385,11 @@ const PomodoroTimer = ({ onExit }: Props) => {
           {/* Centered card */}
           <Box
             alignSelf="center"
+            maxW={{ base: "92vw", md: "auto" }}
             bg="rgba(255,255,255,.72)"
             border="3px solid white"
             borderRadius="34px"
-            padding="34px 46px"
+            padding={{ base: "20px 24px", md: "34px 46px" }}
             boxShadow="0 12px 40px rgba(122,90,160,.25)"
             display="flex" flexDirection="column" alignItems="center" gap="16px"
           >
@@ -397,9 +398,9 @@ const PomodoroTimer = ({ onExit }: Props) => {
           </Box>
 
           {/* Bottom row */}
-          <HStack justify="space-between" align="flex-end">
+          <HStack justify="space-between" align="flex-end" flexWrap="wrap" gap={{ base: "10px", md: "0" }}>
             {NowPlayingChip({ compact: true })}
-            <HStack gap="8px">
+            <HStack gap="8px" flexWrap="wrap">
               {(Object.keys(THEMES) as (keyof typeof THEMES)[]).map((k) => (
                 <Box
                   key={k}
@@ -451,7 +452,14 @@ const PomodoroTimer = ({ onExit }: Props) => {
       </HStack>
 
       {/* Body */}
-      <HStack align="stretch" gap="26px" px="34px" pb="34px">
+      <Box
+        display="flex"
+        flexDirection={{ base: "column", lg: "row" }}
+        alignItems="stretch"
+        gap={{ base: "18px", lg: "26px" }}
+        px={{ base: "16px", md: "34px" }}
+        pb="34px"
+      >
         {/* Left: hourglass + timer */}
         <Box
           flex="1"
@@ -467,7 +475,7 @@ const PomodoroTimer = ({ onExit }: Props) => {
         </Box>
 
         {/* Right: scene + ambient sound + mascot */}
-        <VStack w="400px" flexShrink={0} gap="18px" align="stretch">
+        <VStack w={{ base: "100%", lg: "400px" }} flexShrink={0} gap="18px" align="stretch">
           {/* SCENE card */}
           <Box
             bg="rgba(255,255,255,.85)"
@@ -610,7 +618,7 @@ const PomodoroTimer = ({ onExit }: Props) => {
             </Text>
           </HStack>
         </VStack>
-      </HStack>
+      </Box>
     </Box>
   );
 };

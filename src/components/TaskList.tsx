@@ -16,6 +16,7 @@ import { getDueBucket, DUE_BUCKET_STYLE } from "../lib/dueDate";
 type Priority = "low" | "medium" | "high";
 type SortBy = "priority" | "date" | "name" | "dueDate";
 type FilterBy = "all" | "active" | "completed" | "archived";
+type SourceFilter = "local" | "jira" | "all";
 
 const PRIORITY_CONFIG: Record<Priority, { bg: string; color: string; dot: string; label: string }> = {
   low:    { bg: "#dcfce7", color: "#15803d", dot: "#22c55e", label: "Low"    },
@@ -54,6 +55,7 @@ interface Props {
 const TaskList = ({ tasks, setTasks }: Props) => {
   // --- STATE ---
   const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("local");
   const [filterBy] = useState<FilterBy>("all");
   const [sortBy] = useState<SortBy>("priority");
   const [sortAscending, setSortAscending] = useState(false);
@@ -128,8 +130,25 @@ const TaskList = ({ tasks, setTasks }: Props) => {
   };
 
   // --- MEMOIZED DATA ---
+  // Tasks narrowed to the selected source (Local / Jira / All) — feeds both the
+  // dropdown's counts and the search/sort pipeline below.
+  const sourceFilteredTasks = useMemo(() => {
+    if (sourceFilter === "all") return tasks;
+    if (sourceFilter === "jira") return tasks.filter((t) => t.source === "jira");
+    return tasks.filter((t) => t.source !== "jira");
+  }, [tasks, sourceFilter]);
+
+  const sourceCounts = useMemo(
+    () => ({
+      local: tasks.filter((t) => t.source !== "jira").length,
+      jira: tasks.filter((t) => t.source === "jira").length,
+      all: tasks.length,
+    }),
+    [tasks]
+  );
+
   const filteredTasks = useMemo(() => {
-    return tasks
+    return sourceFilteredTasks
       .filter((t) => {
         const matchesFilter =
           filterBy === "active"
@@ -153,7 +172,7 @@ const TaskList = ({ tasks, setTasks }: Props) => {
         }
         return a.text.localeCompare(b.text) * order;
       });
-  }, [tasks, filterBy, searchQuery, sortBy, sortAscending]);
+  }, [sourceFilteredTasks, filterBy, searchQuery, sortBy, sortAscending]);
 
   return (
     <Box
@@ -194,15 +213,15 @@ const TaskList = ({ tasks, setTasks }: Props) => {
             bg="rgba(255,255,255,.4)"
           >
             <Text fontSize="11px" fontWeight="800" color="white">
-              {tasks.filter((t) => !t.completed).length} to do
+              {sourceFilteredTasks.filter((t) => !t.completed).length} to do
             </Text>
           </Box>
         </HStack>
       </Box>
 
       <Box px={5} pt={4} pb={5}>
-        {/* Search + sort */}
-        <HStack mb={4} gap={2}>
+        {/* Search + source filter + sort */}
+        <HStack mb={4} gap={2} flexWrap="wrap">
           <Input
             placeholder="Search my dreams..."
             value={searchQuery}
@@ -213,7 +232,27 @@ const TaskList = ({ tasks, setTasks }: Props) => {
             borderColor="pink.100"
             _focus={{ borderColor: "pink.300", boxShadow: "0 0 0 3px rgba(244,114,182,0.15)" }}
             _placeholder={{ color: "gray.300" }}
+            flex="1"
+            minW="140px"
           />
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
+            style={{
+              background: "white",
+              borderRadius: "999px",
+              border: "1.5px solid #FBCFE8",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#DB2777",
+              padding: "8px 12px",
+              cursor: "pointer",
+            }}
+          >
+            <option value="local">Show: Local ({sourceCounts.local})</option>
+            <option value="jira">Show: Jira ({sourceCounts.jira})</option>
+            <option value="all">Show: All ({sourceCounts.all})</option>
+          </select>
           <IconButton
             aria-label="Sort"
             variant="subtle"
@@ -305,7 +344,7 @@ const TaskList = ({ tasks, setTasks }: Props) => {
         </Box>
 
       {/* 📋 The List */}
-      <VStack gap={3} align="stretch" maxH="520px" overflowY="auto" pr="4px">
+      <VStack gap={3} align="stretch">
         {filteredTasks.map((task) => {
           const pc = PRIORITY_CONFIG[task.priority];
           const isExpanded = expandedIds.has(task.id);

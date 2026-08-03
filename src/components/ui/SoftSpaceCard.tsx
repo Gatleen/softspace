@@ -47,17 +47,17 @@ const SoftSpaceCard = ({
     >
       {!headerless && (title || icon) && (
         <Box
-          px="20px"
-          py="16px"
+          px={{ base: "14px", md: "20px" }}
+          py={{ base: "12px", md: "16px" }}
           background={headerGradient}
           display="flex"
           alignItems="center"
-          gap="12px"
+          gap={{ base: "8px", md: "12px" }}
         >
           {icon && (
             <Box
-              w="42px"
-              h="42px"
+              w={{ base: "34px", md: "42px" }}
+              h={{ base: "34px", md: "42px" }}
               borderRadius="14px"
               bg="rgba(255,255,255,.35)"
               display="flex"
@@ -65,14 +65,14 @@ const SoftSpaceCard = ({
               justifyContent="center"
               flexShrink={0}
             >
-              <Image src={icon} alt="" boxSize="26px" objectFit="contain" />
+              <Image src={icon} alt="" boxSize={{ base: "20px", md: "26px" }} objectFit="contain" />
             </Box>
           )}
           <Box flex="1" minW={0}>
             {title && (
               <Text
                 fontFamily="'Jersey 25', cursive"
-                fontSize="24px"
+                fontSize={{ base: "19px", md: "24px" }}
                 color="white"
                 letterSpacing=".6px"
                 textShadow="0 2px 0 rgba(196,87,127,.3)"

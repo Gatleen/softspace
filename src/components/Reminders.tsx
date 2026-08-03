@@ -351,7 +351,7 @@ const Reminders = () => {
         </Box>
 
         {/* Right: add reminder form */}
-        <Box width="380px" flexShrink={0}>
+        <Box w={{ base: "100%", lg: "380px" }} flexShrink={0}>
           <SoftSpaceCard title="New reminder" subtitle="Future you says thank you">
             {!showForm ? (
               <Box textAlign="center" padding="12px 4px 4px">

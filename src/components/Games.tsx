@@ -192,7 +192,7 @@ const MemoryMatch = ({ onBack }: GameProps) => {
               key={idx}
               as="button"
               onClick={() => flip(idx)}
-              h="88px"
+              h={{ base: "70px", md: "88px" }}
               borderRadius="18px"
               boxShadow="0 4px 0 rgba(255,199,222,.4)"
               border={show ? "2.5px solid #FFDDEB" : "none"}
@@ -374,9 +374,20 @@ export default function Games() {
     <Box>
       <SectionHeader title="Cozy Arcade" meta="Pick a game to play" />
 
-      <Box display="flex" gap="22px" alignItems="flex-start">
+      <Box
+        display="flex"
+        flexDirection={{ base: "column", lg: "row" }}
+        gap="22px"
+        alignItems={{ base: "stretch", lg: "flex-start" }}
+      >
         {/* Left: welcome card + game picker */}
-        <Box width="420px" flexShrink={0} display="flex" flexDirection="column" gap="14px">
+        <Box
+          w={{ base: "100%", lg: "420px" }}
+          flexShrink={0}
+          display="flex"
+          flexDirection="column"
+          gap="14px"
+        >
           <Box
             display="flex"
             flexDirection="column"

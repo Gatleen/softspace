@@ -21,7 +21,7 @@ const RoomBanner = () => {
   return (
     <Box
       position="relative"
-      h="230px"
+      h={{ base: "150px", sm: "185px", md: "230px" }}
       overflow="hidden"
       borderRadius="24px"
       background="linear-gradient(180deg,#FFD9E8 0%,#FFE9F1 55%,#FFF4F8 100%)"
@@ -44,12 +44,12 @@ const RoomBanner = () => {
         <path d="M0 22 Q 700 96 1400 22" fill="none" stroke="#E6C7F2" strokeWidth={3} strokeLinecap="round" opacity={0.75} />
       </svg>
 
-      <Box position="absolute" top="0" left="0" right="0" display="flex" justifyContent="space-between" alignItems="flex-start" px="26px">
+      <Box position="absolute" top="0" left="0" right="0" display="flex" justifyContent="space-between" alignItems="flex-start" px={{ base: "10px", md: "26px" }}>
         {FLAGS.map((f) => (
           <Box
             key={f.key}
             mt={f.top}
-            w="30px"
+            w={{ base: "10px", md: "30px" }}
             h={f.height}
             bg={f.color}
             style={{
@@ -64,7 +64,9 @@ const RoomBanner = () => {
         ))}
       </Box>
 
+      {/* Decorative clouds/stars: raw pixel-positioned, so only show once there's enough room */}
       <Box
+        display={{ base: "none", md: "block" }}
         position="absolute"
         left="120px"
         top="96px"
@@ -75,6 +77,7 @@ const RoomBanner = () => {
         boxShadow="34px -16px 0 -6px #fff, 72px 4px 0 -10px #fff"
       />
       <Box
+        display={{ base: "none", md: "block" }}
         position="absolute"
         right="150px"
         top="112px"
@@ -84,13 +87,13 @@ const RoomBanner = () => {
         borderRadius="999px"
         boxShadow="-40px -18px 0 -8px #fff, -84px 6px 0 -12px #fff"
       />
-      <Box position="absolute" left="56px" top="150px" fontSize="26px" color="white" style={{ animation: "ss-twinkle 2.6s ease-in-out infinite" }}>✧</Box>
-      <Box position="absolute" right="70px" top="66px" fontSize="20px" color="white" style={{ animation: "ss-twinkle 3.4s ease-in-out infinite" }}>✧</Box>
+      <Box display={{ base: "none", md: "block" }} position="absolute" left="56px" top="150px" fontSize="26px" color="white" style={{ animation: "ss-twinkle 2.6s ease-in-out infinite" }}>✧</Box>
+      <Box display={{ base: "none", md: "block" }} position="absolute" right="70px" top="66px" fontSize="20px" color="white" style={{ animation: "ss-twinkle 3.4s ease-in-out infinite" }}>✧</Box>
 
       <Box
         position="absolute"
         left="50%"
-        top="44px"
+        top={{ base: "20px", sm: "30px", md: "44px" }}
         transform="translateX(-50%)"
         w="660px"
         maxW="90%"
@@ -104,18 +107,18 @@ const RoomBanner = () => {
           border="3px solid #FFC2DA"
           borderRadius="14px"
           bg="white"
-          px="26px"
-          pt="14px"
-          pb="18px"
+          px={{ base: "12px", md: "26px" }}
+          pt={{ base: "8px", md: "14px" }}
+          pb={{ base: "10px", md: "18px" }}
           display="flex"
           alignItems="center"
           justifyContent="center"
-          gap="22px"
+          gap={{ base: "10px", md: "22px" }}
         >
           <Image
             src="/Llama1.png"
             alt="Lumi the llama"
-            w="92px"
+            w={{ base: "48px", sm: "64px", md: "92px" }}
             flexShrink={0}
             style={{ imageRendering: "pixelated", animation: "ss-float 5s ease-in-out infinite" }}
             filter="drop-shadow(0 6px 10px rgba(196,87,127,.2))"
@@ -123,7 +126,7 @@ const RoomBanner = () => {
           <Box textAlign="center">
             <Text
               fontFamily="'Jersey 25', cursive"
-              fontSize="64px"
+              fontSize={{ base: "28px", sm: "40px", md: "64px" }}
               lineHeight=".95"
               color="#F27DAB"
               letterSpacing="2px"
@@ -131,7 +134,7 @@ const RoomBanner = () => {
             >
               SoftSpace
             </Text>
-            <Text fontSize="11px" fontWeight="700" letterSpacing="5px" color="#C9A6D9" mt="4px">
+            <Text fontSize={{ base: "7px", md: "11px" }} fontWeight="700" letterSpacing={{ base: "2px", md: "5px" }} color="#C9A6D9" mt="4px">
               YOUR DIGITAL SANCTUARY
             </Text>
           </Box>

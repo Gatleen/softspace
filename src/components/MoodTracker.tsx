@@ -244,14 +244,23 @@ const MoodTracker = () => {
     <Box>
       <SectionHeader title="How are you feeling?" />
 
-      <Box display="flex" gap="22px" alignItems="flex-start">
+      <Box
+        display="flex"
+        flexDirection={{ base: "column", lg: "row" }}
+        gap="22px"
+        alignItems={{ base: "stretch", lg: "flex-start" }}
+      >
         {/* 🧩 Mood Picker Grid */}
         <Box flex="1">
           <SoftSpaceCard
             title="Pick your mood"
             subtitle="25 little faces to choose from"
           >
-            <Box display="grid" gridTemplateColumns="repeat(5, 1fr)" gap="10px">
+            <Box
+              display="grid"
+              gridTemplateColumns={{ base: "repeat(4,1fr)", sm: "repeat(5,1fr)" }}
+              gap="10px"
+            >
               {moods.map((mood) => {
                 const selected = selectedMood?.id === mood.id;
                 return (
@@ -295,7 +304,13 @@ const MoodTracker = () => {
         </Box>
 
         {/* 💌 Logging & Advice Column */}
-        <Box width="400px" flexShrink={0} display="flex" flexDirection="column" gap="18px">
+        <Box
+          w={{ base: "100%", lg: "400px" }}
+          flexShrink={0}
+          display="flex"
+          flexDirection="column"
+          gap="18px"
+        >
           {/* Selected-mood detail card */}
           <Box
             bg="white"

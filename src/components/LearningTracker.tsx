@@ -327,7 +327,7 @@ const LearningTracker = () => {
       <Box display="flex" gap="22px" alignItems="flex-start" flexWrap="wrap">
 
         {/* ── LEFT: Projects ── */}
-        <Box style={{ flex: "1 1 480px" }}>
+        <Box flexGrow={1} flexShrink={1} flexBasis={{ base: "100%", md: "280px" }}>
 
           {/* Add project form — collapsible */}
           {showForm && (
@@ -339,7 +339,7 @@ const LearningTracker = () => {
               }}
             >
               <Text fontFamily="'Jersey 25', cursive" fontSize="22px" color="#C0577E" mb="14px">New Course / Project</Text>
-              <Box display="grid" style={{ gridTemplateColumns: "repeat(2,1fr)", gap: "14px" }}>
+              <Box display="grid" gridTemplateColumns={{ base: "1fr", sm: "repeat(2,1fr)" }} gap="14px">
                 <Box style={{ gridColumn: "span 2" }}>
                   <FieldLabel>TITLE *</FieldLabel>
                   <Input placeholder="e.g. React Complete Guide, UI/UX Bootcamp..."
@@ -443,7 +443,7 @@ const LearningTracker = () => {
             </Box>
           )}
 
-          <Box display="grid" style={{ gridTemplateColumns: "repeat(2,1fr)", gap: "16px" }}>
+          <Box display="grid" gridTemplateColumns={{ base: "1fr", sm: "repeat(2,1fr)" }} gap="16px">
             {projects.map((project) => {
               const subtasks    = project.subtasks || [];
               const doneTasks   = subtasks.filter((s) => s.completed).length;
@@ -629,7 +629,7 @@ const LearningTracker = () => {
         </Box>
 
         {/* ── RIGHT: Daily Log ── */}
-        <Box style={{ width: "380px", flexShrink: 0 }}>
+        <Box w={{ base: "100%", lg: "380px" }} flexShrink={0}>
           <SoftSpaceCard title="Daily Log" subtitle="What did you learn today?">
             <VStack gap="10px" align="stretch">
               <Box>

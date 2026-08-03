@@ -244,7 +244,11 @@ const Achievements = () => {
         Drop your own art onto any earned sticker — it keeps the white die-cut outline
       </Box>
 
-      <Box display="grid" style={{ gridTemplateColumns: "repeat(4,1fr)" }} gap="22px">
+      <Box
+        display="grid"
+        gridTemplateColumns={{ base: "repeat(2,1fr)", md: "repeat(3,1fr)", lg: "repeat(4,1fr)" }}
+        gap="22px"
+      >
         {BADGES.map((badge, i) => {
           const tint = badge.unlocked ? UNLOCKED_TINTS[i % UNLOCKED_TINTS.length] : LOCKED_TINT;
           const rotation = badge.unlocked ? ROTATIONS[i % ROTATIONS.length] : "0deg";

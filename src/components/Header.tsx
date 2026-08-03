@@ -22,18 +22,18 @@ const Header = ({ currentTime, setFocusMode }: Props) => {
       bg="white"
       border="2.5px solid #FFDDEB"
       borderRadius="24px"
-      p="22px 26px"
+      p={{ base: "16px 18px", md: "22px 26px" }}
       boxShadow="0 6px 0 rgba(255,199,222,.45)"
       position="relative"
       overflow="hidden"
     >
-      <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap="16px">
+      <Box display="flex" flexDirection={{ base: "column", md: "row" }} alignItems="flex-start" justifyContent="space-between" gap={{ base: "12px", md: "16px" }}>
         <Box>
-          <Box display="flex" alignItems="center" gap="10px">
-            <Text fontFamily="'Jersey 25', cursive" fontSize="38px" lineHeight="1.05" color="#4A3B52">
+          <Box display="flex" alignItems="center" gap={{ base: "8px", md: "10px" }}>
+            <Text fontFamily="'Jersey 25', cursive" fontSize={{ base: "26px", md: "38px" }} lineHeight="1.05" color="#4A3B52">
               How's it going, <Text as="span" color="#F27DAB">{username}</Text>?
             </Text>
-            <Image src={icons.sparkle} alt="" boxSize="30px" objectFit="contain" />
+            <Image src={icons.sparkle} alt="" boxSize={{ base: "22px", md: "30px" }} objectFit="contain" />
           </Box>
           <Text fontSize="13px" fontWeight="600" color="#A08B9B" mt="2px">
             Ready to make today amazing?
@@ -44,8 +44,8 @@ const Header = ({ currentTime, setFocusMode }: Props) => {
           display="flex"
           alignItems="center"
           gap="10px"
-          px="16px"
-          py="10px"
+          px={{ base: "12px", md: "16px" }}
+          py={{ base: "8px", md: "10px" }}
           borderRadius="18px"
           background="linear-gradient(150deg,#EFE6FC,#DCEAFB)"
           border="3px solid white"
@@ -54,7 +54,7 @@ const Header = ({ currentTime, setFocusMode }: Props) => {
         >
           <Text
             fontFamily="'Jersey 25', cursive"
-            fontSize="44px"
+            fontSize={{ base: "30px", md: "44px" }}
             lineHeight=".85"
             color="#7A5AA6"
             letterSpacing="3px"
@@ -76,17 +76,17 @@ const Header = ({ currentTime, setFocusMode }: Props) => {
       <Box
         display="flex"
         alignItems="center"
-        gap="14px"
-        mt="18px"
-        px="16px"
-        py="14px"
+        gap={{ base: "10px", md: "14px" }}
+        mt={{ base: "14px", md: "18px" }}
+        px={{ base: "12px", md: "16px" }}
+        py={{ base: "10px", md: "14px" }}
         borderRadius="18px"
         background="linear-gradient(135deg,#FDF2F8,#F4EEFF)"
         border="2px solid #EEDCFB"
       >
         <Box
-          w="44px"
-          h="44px"
+          w={{ base: "36px", md: "44px" }}
+          h={{ base: "36px", md: "44px" }}
           borderRadius="999px"
           bg="white"
           display="flex"
@@ -95,13 +95,13 @@ const Header = ({ currentTime, setFocusMode }: Props) => {
           flexShrink={0}
           boxShadow="0 3px 0 rgba(205,180,246,.4)"
         >
-          <Image src={icons.quote} alt="" boxSize="22px" objectFit="contain" />
+          <Image src={icons.quote} alt="" boxSize={{ base: "18px", md: "22px" }} objectFit="contain" />
         </Box>
         <Box>
           <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#8A6BD1">
             DAILY QUOTE
           </Text>
-          <Text fontSize="14.5px" fontStyle="italic" fontWeight="600" color="#5C4A63" mt="2px">
+          <Text fontSize={{ base: "13px", md: "14.5px" }} fontStyle="italic" fontWeight="600" color="#5C4A63" mt="2px">
             "{dailyQuote}"
           </Text>
         </Box>
@@ -112,9 +112,9 @@ const Header = ({ currentTime, setFocusMode }: Props) => {
         display="inline-flex"
         alignItems="center"
         gap="9px"
-        mt="16px"
-        px="20px"
-        py="11px"
+        mt={{ base: "12px", md: "16px" }}
+        px={{ base: "16px", md: "20px" }}
+        py={{ base: "9px", md: "11px" }}
         borderRadius="999px"
         background="linear-gradient(135deg,#FFC2DA,#CDB4F6)"
         border="2.5px solid white"
@@ -123,8 +123,8 @@ const Header = ({ currentTime, setFocusMode }: Props) => {
         transition="transform 0.15s ease"
         _hover={{ transform: "translateY(-2px)" }}
       >
-        <Image src={icons.brain} alt="" boxSize="20px" objectFit="contain" />
-        <Text fontFamily="'Jersey 25', cursive" fontSize="22px" color="white" letterSpacing=".5px" textShadow="0 2px 0 rgba(196,87,127,.3)">
+        <Image src={icons.brain} alt="" boxSize={{ base: "18px", md: "20px" }} objectFit="contain" />
+        <Text fontFamily="'Jersey 25', cursive" fontSize={{ base: "19px", md: "22px" }} color="white" letterSpacing=".5px" textShadow="0 2px 0 rgba(196,87,127,.3)">
           Enter Focus Mode
         </Text>
       </Box>

@@ -304,24 +304,24 @@ const FinanceTracker = () => {
       />
 
       {/* Summary cards */}
-      <Box display="flex" gap="18px" mb="22px">
+      <Box display="flex" flexDirection={{ base: "column", sm: "row" }} gap="18px" mb="22px">
         <Box flex="1" p="18px 22px" borderRadius="22px" bg="white" border="2.5px solid #FFDDEB" boxShadow="0 6px 0 rgba(255,199,222,.45)">
           <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#F27DAB">THIS MONTH IN</Text>
-          <Text fontFamily="'Jersey 25', cursive" fontSize="40px" color="#0E9F6E" lineHeight="1.1">{fmt(totalIncome)}</Text>
+          <Text fontFamily="'Jersey 25', cursive" fontSize={{ base: "28px", md: "40px" }} color="#0E9F6E" lineHeight="1.1">{fmt(totalIncome)}</Text>
         </Box>
         <Box flex="1" p="18px 22px" borderRadius="22px" bg="white" border="2.5px solid #FFDDEB" boxShadow="0 6px 0 rgba(255,199,222,.45)">
           <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#F27DAB">THIS MONTH OUT</Text>
-          <Text fontFamily="'Jersey 25', cursive" fontSize="40px" color="#E11D48" lineHeight="1.1">{fmt(totalExpenses)}</Text>
+          <Text fontFamily="'Jersey 25', cursive" fontSize={{ base: "28px", md: "40px" }} color="#E11D48" lineHeight="1.1">{fmt(totalExpenses)}</Text>
         </Box>
         <Box flex="1" p="18px 22px" borderRadius="22px" background="linear-gradient(135deg,#FDF2F8,#F4EEFF)" border="2.5px solid #EEDCFB" boxShadow="0 6px 0 rgba(205,180,246,.35)">
           <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#8A6BD1">BALANCE LEFT</Text>
-          <Text fontFamily="'Jersey 25', cursive" fontSize="40px" color="#8A6BD1" lineHeight="1.1">{fmt(balance)}</Text>
+          <Text fontFamily="'Jersey 25', cursive" fontSize={{ base: "28px", md: "40px" }} color="#8A6BD1" lineHeight="1.1">{fmt(balance)}</Text>
         </Box>
       </Box>
 
       {/* ══════════ LEDGER TAB ══════════ */}
       {tab === "ledger" && (
-        <Box display="flex" gap="22px" alignItems="flex-start">
+        <Box display="flex" flexDirection={{ base: "column", lg: "row" }} gap="22px" alignItems={{ base: "stretch", lg: "flex-start" }}>
 
           {/* Left — transactions table */}
           <Box flex="1">
@@ -420,63 +420,68 @@ const FinanceTracker = () => {
                 </IconButton>
               </Box>
 
-              {/* Table header */}
-              <Box
-                display="grid" gridTemplateColumns="70px 1fr 120px 120px 32px"
-                background="#FFF6FA" borderBottom="2.5px solid #FFDDEB" p="10px 20px"
-              >
-                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">DATE</Text>
-                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">DESCRIPTION</Text>
-                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">CATEGORY</Text>
-                <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E" textAlign="right">AMOUNT</Text>
-                <Box />
-              </Box>
-
-              {/* Rows */}
-              {txLoading ? (
-                <Text textAlign="center" py="40px" color="#C2AECF" fontWeight="700">Loading...</Text>
-              ) : filtered.length === 0 ? (
-                <Text textAlign="center" py="40px" color="#C2AECF" fontSize="13px" fontWeight="600">No transactions yet — add one above 🌸</Text>
-              ) : (
-                filtered.map((t) => (
+              {/* Table (header + rows share one horizontal scroll container so columns stay aligned) */}
+              <Box overflowX="auto">
+                <Box minW="480px">
+                  {/* Table header */}
                   <Box
-                    key={t.id}
-                    className="group"
-                    position="relative"
-                    display="grid"
-                    gridTemplateColumns="70px 1fr 120px 120px 32px"
-                    alignItems="center"
-                    p="11px 20px"
-                    borderBottom="1.5px solid #FFF0F6"
+                    display="grid" gridTemplateColumns="70px 1fr 120px 120px 32px"
+                    background="#FFF6FA" borderBottom="2.5px solid #FFDDEB" p="10px 20px"
                   >
-                    <Text fontSize="11.5px" fontWeight="700" color="#B79ACB">{t.date}</Text>
-                    <Text
-                      fontSize="13px" fontWeight="600" color="#5C4A63"
-                      style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "8px" }}
-                    >
-                      {t.description}
-                    </Text>
-                    <Box display="flex" alignItems="center" gap="6px" minW={0}>
-                      <Box w="8px" h="8px" borderRadius="full" flexShrink={0} background={CATEGORY_COLORS[t.category] || "#9CA3AF"} />
-                      <Text fontSize="11.5px" fontWeight="800" color="#8A7690" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {t.category}
-                      </Text>
-                    </Box>
-                    <Text fontSize="13.5px" fontWeight="800" textAlign="right" color={t.type === "income" ? "#0E9F6E" : "#E11D48"}>
-                      {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
-                    </Text>
-                    <Box display="flex" justifyContent="flex-end">
-                      <IconButton
-                        aria-label="Delete" size="xs" variant="ghost" borderRadius="md"
-                        opacity={0} _groupHover={{ opacity: 1 }}
-                        onClick={() => deleteTransaction(t.id)}
-                      >
-                        <Trash2 size={12} color="#C2AECF" />
-                      </IconButton>
-                    </Box>
+                    <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">DATE</Text>
+                    <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">DESCRIPTION</Text>
+                    <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E">CATEGORY</Text>
+                    <Text fontSize="10px" fontWeight="800" letterSpacing="1.5px" color="#C0577E" textAlign="right">AMOUNT</Text>
+                    <Box />
                   </Box>
-                ))
-              )}
+
+                  {/* Rows */}
+                  {txLoading ? (
+                    <Text textAlign="center" py="40px" color="#C2AECF" fontWeight="700">Loading...</Text>
+                  ) : filtered.length === 0 ? (
+                    <Text textAlign="center" py="40px" color="#C2AECF" fontSize="13px" fontWeight="600">No transactions yet — add one above 🌸</Text>
+                  ) : (
+                    filtered.map((t) => (
+                      <Box
+                        key={t.id}
+                        className="group"
+                        position="relative"
+                        display="grid"
+                        gridTemplateColumns="70px 1fr 120px 120px 32px"
+                        alignItems="center"
+                        p="11px 20px"
+                        borderBottom="1.5px solid #FFF0F6"
+                      >
+                        <Text fontSize="11.5px" fontWeight="700" color="#B79ACB">{t.date}</Text>
+                        <Text
+                          fontSize="13px" fontWeight="600" color="#5C4A63"
+                          style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "8px" }}
+                        >
+                          {t.description}
+                        </Text>
+                        <Box display="flex" alignItems="center" gap="6px" minW={0}>
+                          <Box w="8px" h="8px" borderRadius="full" flexShrink={0} background={CATEGORY_COLORS[t.category] || "#9CA3AF"} />
+                          <Text fontSize="11.5px" fontWeight="800" color="#8A7690" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {t.category}
+                          </Text>
+                        </Box>
+                        <Text fontSize="13.5px" fontWeight="800" textAlign="right" color={t.type === "income" ? "#0E9F6E" : "#E11D48"}>
+                          {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
+                        </Text>
+                        <Box display="flex" justifyContent="flex-end">
+                          <IconButton
+                            aria-label="Delete" size="xs" variant="ghost" borderRadius="md"
+                            opacity={0} _groupHover={{ opacity: 1 }}
+                            onClick={() => deleteTransaction(t.id)}
+                          >
+                            <Trash2 size={12} color="#C2AECF" />
+                          </IconButton>
+                        </Box>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+              </Box>
 
               {/* Print footer */}
               <Box display="flex" alignItems="center" gap="10px" flexWrap="wrap" p="16px 20px" borderTop="2px solid #FFF0F6">
@@ -504,7 +509,7 @@ const FinanceTracker = () => {
           </Box>
 
           {/* Right column */}
-          <Box width="400px" flexShrink={0} display="flex" flexDirection="column" gap="18px">
+          <Box w={{ base: "100%", lg: "400px" }} flexShrink={0} display="flex" flexDirection="column" gap="18px">
 
             {/* Where it went */}
             <Box bg="white" border="2.5px solid #EEDCFB" borderRadius="24px" boxShadow="0 6px 0 rgba(205,180,246,.35)" p="18px 20px">

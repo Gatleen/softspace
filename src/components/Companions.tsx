@@ -22,10 +22,10 @@ const Companions = () => {
     <Box>
       <SectionHeader title="SoftSpace Sanctuary" meta="Click a friend to see their diary page" />
 
-      <Box display="flex" gap="22px" alignItems="flex-start">
+      <Box display="flex" flexDirection={{ base: "column", lg: "row" }} gap="22px" alignItems="flex-start">
         {/* Sticker Selection Sidebar */}
         <Box
-          w="400px"
+          w={{ base: "100%", lg: "400px" }}
           flexShrink={0}
           bg="white"
           border="3px solid #FFC8DE"

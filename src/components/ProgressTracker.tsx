@@ -88,7 +88,7 @@ const ProgressTracker = ({ tasks }: ProgressTrackerProps) => {
         position="relative"
         h="110px"
         mb={2}
-        mx="50px"
+        mx={{ base: "20px", md: "50px" }}
       >
         <motion.div
           initial={false}
