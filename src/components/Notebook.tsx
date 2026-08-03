@@ -4,6 +4,7 @@ import { Trash2, X, ArrowLeft } from "lucide-react";
 import stickerPacks from "../data/stickerPacks.json";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
 import SectionHeader from "./ui/SectionHeader";
+import { recordJournalEntryCount } from "../lib/achievements";
 
 // 🏗️ Data Structure
 interface Attachment {
@@ -53,18 +54,6 @@ const Notebook = () => {
       }));
       setEntries(migrated);
       if (migrated.length > 0) setSelectedId(migrated[0].id);
-    } else {
-      const initial = [
-        {
-          id: Date.now(),
-          title: "My First Entry",
-          content: "Welcome to your digital sanctuary... 🌸",
-          date: new Date().toLocaleDateString(),
-          attachments: [],
-        },
-      ];
-      setEntries(initial);
-      setSelectedId(initial[0].id);
     }
   }, []);
 
@@ -190,6 +179,7 @@ const Notebook = () => {
     };
     setEntries([newEntry, ...entries]);
     setSelectedId(newEntry.id);
+    recordJournalEntryCount(entries.length + 1);
   };
 
   const updateEntry = (field: keyof NoteEntry, value: any) => {

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, SimpleGrid, Text, Image } from "@chakra-ui/react";
 import CharacterProfile from "./CharacterProfile";
 import companionData from "../data/companions.json";
 import SectionHeader from "./ui/SectionHeader";
+import { recordCompanionViewed } from "../lib/achievements";
 
 // Soft pastel gradients cycled across the companion picker cards.
 // Shared (by index) with CharacterProfile's accent-gradient panel.
@@ -17,6 +18,11 @@ export const COMPANION_GRADIENTS = [
 
 const Companions = () => {
   const [selected, setSelected] = useState(companionData.characters[0]);
+
+  // Visiting Friends counts the default-selected companion as viewed too.
+  useEffect(() => {
+    recordCompanionViewed(companionData.characters[0].name);
+  }, []);
 
   return (
     <Box>
@@ -63,7 +69,7 @@ const Companions = () => {
                   <Box
                     key={char.name}
                     as="button"
-                    onClick={() => setSelected(char)}
+                    onClick={() => { setSelected(char); recordCompanionViewed(char.name); }}
                     p="8px"
                     borderRadius="18px"
                     background={COMPANION_GRADIENTS[i % COMPANION_GRADIENTS.length]}

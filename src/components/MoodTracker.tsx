@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Image, Text, Textarea } from "@chakra-ui/react";
 import SectionHeader from "./ui/SectionHeader";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
+import { recordMoodLogged } from "../lib/achievements";
 
 interface Mood {
   id: number;
@@ -236,6 +237,7 @@ const MoodTracker = () => {
       fullTime: `${now.toLocaleDateString()} @ ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
     };
     setHistory([entry, ...history].slice(0, 10));
+    recordMoodLogged(selectedMood.name);
     setNote("");
     setSelectedMood(null);
   };

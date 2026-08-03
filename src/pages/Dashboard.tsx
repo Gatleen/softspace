@@ -21,6 +21,7 @@ import FinanceTracker from "../components/FinanceTracker";
 import LearningTracker from "../components/LearningTracker";
 import Reminders, { TOAST_KEY } from "../components/Reminders";
 import { fetchJiraTasks } from "../lib/jiraTasks";
+import { recordAppVisit, BADGE_TOAST_KEY } from "../lib/achievements";
 
 interface Subtask {
   id: number;
@@ -119,23 +120,13 @@ const Dashboard = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [currentView, setCurrentView] = useState("dashboard");
   const [reminderToast, setReminderToast] = useState<{ id: string; title: string; note?: string } | null>(null);
+  const [badgeToast, setBadgeToast] = useState<{ id: string; name: string; icon: string } | null>(null);
 
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  const [notes, setNotes] = useState([
-    {
-      id: 1,
-      text: "Take breaks 🌸",
-      bgColor: "pink.100",
-      textColor: "gray.800",
-    },
-    {
-      id: 2,
-      text: "30 mins coding ✨",
-      bgColor: "purple.100",
-      textColor: "purple.900",
-    },
-  ]);
+  const [notes, setNotes] = useState<
+    { id: number; text: string; bgColor: string; textColor: string }[]
+  >([]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -174,6 +165,32 @@ const Dashboard = () => {
     sync();
     const id = setInterval(sync, JIRA_POLL_MS);
     return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  // Record today's visit for the Early Bird / Consistent-streak badges.
+  useEffect(() => {
+    recordAppVisit();
+  }, []);
+
+  // Poll localStorage every 5 s for badge-unlock signals written by src/lib/achievements.ts
+  useEffect(() => {
+    let dismissTimer: ReturnType<typeof setTimeout>;
+    const check = () => {
+      const raw = localStorage.getItem(BADGE_TOAST_KEY);
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        localStorage.removeItem(BADGE_TOAST_KEY);
+        setBadgeToast(data);
+        clearTimeout(dismissTimer);
+        dismissTimer = setTimeout(() => setBadgeToast(null), 8000);
+      } catch {
+        localStorage.removeItem(BADGE_TOAST_KEY);
+      }
+    };
+    check();
+    const id = setInterval(check, 5000);
+    return () => { clearInterval(id); clearTimeout(dismissTimer); };
   }, []);
 
   const handleNavChange = (view: string) => {
@@ -322,9 +339,55 @@ const Dashboard = () => {
           </Box>
         </Box>
       )}
+      {/* ── Global badge-unlock toast (fires on any view) ── */}
+      {badgeToast && (
+        <Box
+          position="fixed"
+          bottom="24px"
+          left="50%"
+          zIndex={9999}
+          bg="white"
+          borderRadius="2xl"
+          px={5}
+          py={4}
+          boxShadow="0 8px 32px rgba(196,87,127,.22)"
+          border="2px solid"
+          borderColor="#EEDCFB"
+          minW={{ base: "0", md: "280px" }}
+          w={{ base: "90vw", md: "auto" }}
+          maxW="380px"
+          display="flex"
+          alignItems="center"
+          gap={3}
+          style={{ transform: "translateX(-50%)", animation: "ssBadgeToastIn 0.35s ease" }}
+        >
+          <Box fontSize="26px" flexShrink={0} lineHeight="1">{badgeToast.icon}</Box>
+          <Box flex={1} minW={0}>
+            <Box as="span" fontSize="xs" fontWeight="800" color="#8A6BD1" display="block" letterSpacing="1px" textTransform="uppercase">
+              Badge unlocked
+            </Box>
+            <Box as="span" fontSize="sm" fontWeight="900" color="#C0577E" display="block">
+              {badgeToast.name}
+            </Box>
+          </Box>
+          <Box
+            as="button"
+            flexShrink={0}
+            style={{ background: "none", border: "none", cursor: "pointer",
+              color: "#d1d5db", fontSize: "20px", lineHeight: 1, padding: "0" }}
+            onClick={() => setBadgeToast(null)}
+          >
+            ×
+          </Box>
+        </Box>
+      )}
       <style>{`
         @keyframes ssToastIn {
           from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes ssBadgeToastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(16px); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
       `}</style>

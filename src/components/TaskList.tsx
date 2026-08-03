@@ -12,6 +12,7 @@ import {
 import { useState, useMemo } from "react";
 import { Flag, Calendar, SortAsc, Archive, Heart, ChevronDown, ChevronRight, Plus, ExternalLink } from "lucide-react";
 import { getDueBucket, DUE_BUCKET_STYLE } from "../lib/dueDate";
+import { recordTaskCompleted, recordTaskStarred } from "../lib/achievements";
 
 type Priority = "low" | "medium" | "high";
 type SortBy = "priority" | "date" | "name" | "dueDate";
@@ -368,9 +369,12 @@ const TaskList = ({ tasks, setTasks }: Props) => {
                 <Checkbox.Root
                   checked={task.completed}
                   disabled={task.source === "jira"}
-                  onCheckedChange={() =>
-                    task.source !== "jira" && updateTask(task.id, { completed: !task.completed })
-                  }
+                  onCheckedChange={() => {
+                    if (task.source === "jira") return;
+                    const nowCompleted = !task.completed;
+                    updateTask(task.id, { completed: nowCompleted });
+                    if (nowCompleted) recordTaskCompleted();
+                  }}
                   colorPalette="pink"
                   mt="2px"
                 >
@@ -489,7 +493,11 @@ const TaskList = ({ tasks, setTasks }: Props) => {
                         variant="ghost"
                         rounded="full"
                         size="sm"
-                        onClick={() => updateTask(task.id, { starred: !task.starred })}
+                        onClick={() => {
+                          const nowStarred = !task.starred;
+                          updateTask(task.id, { starred: nowStarred });
+                          if (nowStarred) recordTaskStarred();
+                        }}
                       >
                         <Heart size={15} fill={task.starred ? "#FF69B4" : "none"} color="#FF69B4" />
                       </IconButton>

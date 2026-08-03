@@ -8,6 +8,7 @@ import {
 import { supabase } from "../lib/supabase";
 import SectionHeader from "./ui/SectionHeader";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
+import { recordFinanceState } from "../lib/achievements";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TransactionType = "income" | "expense";
@@ -153,6 +154,7 @@ const FinanceTracker = () => {
     if (!error && data) {
       setTransactions((prev) => [data, ...prev]);
       setNewRow({ type: "expense", amount: "", category: "Other", description: "", date: new Date().toISOString().split("T")[0] });
+      recordFinanceState({ transactionsCount: transactions.length + 1 });
     }
   };
 
@@ -170,7 +172,11 @@ const FinanceTracker = () => {
       name: goalForm.name.trim(), target_amount: target, saved_amount: 0, banner_url: goalForm.banner || null,
     }).select().single();
     if (error) { setGoalError(`Supabase error: ${error.message}`); return; }
-    if (data) { setGoals((prev) => [...prev, data]); setGoalForm({ name: "", target: "", banner: "" }); }
+    if (data) {
+      setGoals((prev) => [...prev, data]);
+      setGoalForm({ name: "", target: "", banner: "" });
+      recordFinanceState({ goalsCount: goals.length + 1 });
+    }
   };
 
   const deleteGoal = async (id: string) => {
@@ -186,6 +192,7 @@ const FinanceTracker = () => {
     if (!error) {
     setGoals((prev) => prev.map((g) => g.id === goal.id ? { ...g, saved_amount: newSaved } : g));
     setAddingToGoal(null); setAddAmount("");
+    if (newSaved >= goal.target_amount) recordFinanceState({ goalCompleted: true });
     }
   };
 

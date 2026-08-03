@@ -6,6 +6,7 @@ import {
 import { supabase } from "../lib/supabase";
 import SectionHeader from "./ui/SectionHeader";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
+import { recordLearningState } from "../lib/achievements";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ProjectStatus = "idea" | "in_progress" | "done";
@@ -208,6 +209,7 @@ const LearningTracker = () => {
     setProjects((prev) => [{ ...data, subtasks: [] }, ...prev]);
     setForm(emptyForm);
     setShowForm(false);
+    recordLearningState({ projectsCount: projects.length + 1 });
   };
 
   const deleteProject = async (id: string) => {
@@ -218,13 +220,19 @@ const LearningTracker = () => {
   const cycleStatus = async (project: Project) => {
     const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(project.status) + 1) % STATUS_CYCLE.length];
     const { error } = await supabase.from("learning_projects").update({ status: next }).eq("id", project.id);
-    if (!error) setProjects((prev) => prev.map((p) => p.id === project.id ? { ...p, status: next } : p));
+    if (!error) {
+      setProjects((prev) => prev.map((p) => p.id === project.id ? { ...p, status: next } : p));
+      if (next === "done") recordLearningState({ anyDone: true });
+    }
   };
 
   const toggleCertificate = async (project: Project) => {
     const { error } = await supabase.from("learning_projects")
       .update({ certificate: !project.certificate }).eq("id", project.id);
-    if (!error) setProjects((prev) => prev.map((p) => p.id === project.id ? { ...p, certificate: !p.certificate } : p));
+    if (!error) {
+      setProjects((prev) => prev.map((p) => p.id === project.id ? { ...p, certificate: !p.certificate } : p));
+      if (!project.certificate) recordLearningState({ anyCertificate: true });
+    }
   };
 
   const saveHours = async (project: Project) => {

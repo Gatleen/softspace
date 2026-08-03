@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Box, Text, VStack, Center, Image, HStack, Circle, Input } from "@chakra-ui/react";
 import { Upload } from "lucide-react";
 import { fetchCustomPlaylists, addPlaylist, type Playlist } from "../lib/playlists";
+import { recordPlaylistAdded } from "../lib/achievements";
 
 const PLAYLIST_DATA: Playlist[] = [
   {
@@ -58,6 +59,7 @@ const MusicPlayer = () => {
       setCurrentIdx(playlists.length);
       setForm(EMPTY_FORM);
       setShowAddForm(false);
+      recordPlaylistAdded();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Couldn't save that playlist.");
     } finally {

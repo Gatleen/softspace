@@ -3,6 +3,7 @@ import {
   Box, HStack, Text, VStack, Input, Image,
 } from "@chakra-ui/react";
 import { X, Volume2, VolumeX, Coffee, BookOpen, Zap } from "lucide-react";
+import { recordFocusSessionCompleted, recordBreakModeUsed } from "../lib/achievements";
 
 // ─── Theme config ─────────────────────────────────────────────────────────────
 const THEMES = {
@@ -154,6 +155,7 @@ const PomodoroTimer = ({ onExit }: Props) => {
       setRunning(false);
       if (mode === "focus") {
         setSessions((s) => s + 1);
+        recordFocusSessionCompleted();
         // Browser notification
         if (Notification.permission === "granted") {
           new Notification("🍅 Focus session done!", {
@@ -173,6 +175,7 @@ const PomodoroTimer = ({ onExit }: Props) => {
 
   const switchMode = (m: TimerMode) => {
     setMode(m);
+    if (m !== "focus") recordBreakModeUsed();
     setRunning(false);
     const mins = m === "focus" ? focusMins : MODES[m].defaultMins;
     setTotalSecs(mins * 60);

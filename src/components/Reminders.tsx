@@ -3,6 +3,7 @@ import { Box, Input, Textarea, Image, Text } from "@chakra-ui/react";
 import { Clock, Trash2 } from "lucide-react";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
 import SectionHeader from "./ui/SectionHeader";
+import { recordReminderCreated, recordReminderFired } from "../lib/achievements";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface Reminder {
@@ -126,6 +127,8 @@ const Reminders = () => {
         tag:   r.id,
       });
     }
+
+    recordReminderFired();
   }, [notifPerm]);
 
   // Check every 30 s for due reminders
@@ -165,6 +168,7 @@ const Reminders = () => {
     setReminders((prev) => [...prev, r]);
     setForm({ title: "", note: "", datetime: localNow(), repeat: "none" });
     setShowForm(false);
+    recordReminderCreated();
   };
 
   const deleteReminder  = (id: string) => setReminders((p) => p.filter((r) => r.id !== id));

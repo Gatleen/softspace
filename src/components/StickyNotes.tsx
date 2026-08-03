@@ -11,6 +11,7 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { X, Plus } from "lucide-react";
+import { recordStickyNoteAdded } from "../lib/achievements";
 
 const PALETTES = [
   { bg: "#fce4ec", dot: "#f48fb1", label: "Rose"     },
@@ -56,6 +57,7 @@ const StickyNotes = ({ notes, setNotes }: Props) => {
       ...notes,
     ]);
     setNewNote("");
+    recordStickyNoteAdded();
   };
 
   const deleteNote = (id: number) => setNotes(notes.filter((n) => n.id !== id));

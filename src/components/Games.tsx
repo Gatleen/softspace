@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
 import SectionHeader from "./ui/SectionHeader";
+import { recordGameWon } from "../lib/achievements";
 
 // ─── SHARED PILL / BADGE HELPERS ─────────────────────────────────────────────
 // Small styling helpers reused across all four games so every game's footer
@@ -177,6 +178,10 @@ const MemoryMatch = ({ onBack }: GameProps) => {
 
   const won = matched.size === 16;
 
+  useEffect(() => {
+    if (won) recordGameWon("memory");
+  }, [won]);
+
   return (
     <Box display="flex" flexDirection="column" gap="14px" w="full">
       <Box display="flex" gap="8px" flexWrap="wrap">
@@ -259,6 +264,7 @@ const JournalingDice = ({ onBack }: GameProps) => {
     setTimeout(() => {
       setPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
       setRolling(false);
+      recordGameWon("dice");
     }, 800);
   };
 
