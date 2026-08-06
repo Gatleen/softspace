@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Input, Textarea, Image, Text } from "@chakra-ui/react";
 import { Clock, Trash2 } from "lucide-react";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
 import SectionHeader from "./ui/SectionHeader";
 import { recordReminderCreated, recordReminderFired } from "../lib/achievements";
+import { supabase } from "../lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface Reminder {
@@ -15,17 +16,9 @@ export interface Reminder {
   repeat: "none" | "daily" | "weekly";
 }
 
-// ─── Storage helpers ──────────────────────────────────────────────────────────
-const STORAGE_KEY   = "softspace_reminders";
-const TOAST_KEY     = "softspace_fired_toast";
-
-export const loadReminders = (): Reminder[] => {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-  catch { return []; }
-};
-
-const saveReminders = (list: Reminder[]) =>
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+// One-shot, same-tab toast signal — intentionally stays in localStorage (no
+// need for durability/cross-device sync), unlike the Reminder records above.
+const TOAST_KEY = "softspace_fired_toast";
 
 // Push the full unfired list to the service worker so it can fire
 // browser notifications even when this tab is not focused.
@@ -39,11 +32,15 @@ const syncToSW = (reminders: Reminder[]) => {
 };
 
 // ─── Misc helpers ─────────────────────────────────────────────────────────────
-const localNow = () => {
-  const d   = new Date();
+// `datetime` is kept as a naive local "YYYY-MM-DDTHH:mm" string everywhere in
+// this component (matches <input type="datetime-local">) — only converted
+// to/from a real UTC timestamp at the Supabase read/write boundary below.
+const formatLocalInput = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
+const localNow = () => formatLocalInput(new Date());
+const toLocalInputValue = (iso: string) => formatLocalInput(new Date(iso));
 
 const fmtDatetime = (iso: string) =>
   new Date(iso).toLocaleString("en-MY", {
@@ -84,7 +81,8 @@ const REPEAT_OPTIONS = ["none", "daily", "weekly"] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const Reminders = () => {
-  const [reminders, setReminders] = useState<Reminder[]>(loadReminders);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const remindersRef = useRef<Reminder[]>([]);
   const [notifPerm,  setNotifPerm] = useState<NotificationPermission>(
     typeof Notification !== "undefined" ? Notification.permission : "denied"
   );
@@ -93,15 +91,38 @@ const Reminders = () => {
     title: "", note: "", datetime: localNow(), repeat: "none" as Reminder["repeat"],
   });
 
-  // Persist + sync to SW whenever the list changes
+  // Load persisted reminders from Supabase on mount.
   useEffect(() => {
-    saveReminders(reminders);
+    let cancelled = false;
+    supabase.from("reminders").select("*").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error || !data) {
+        if (error) console.warn("load reminders:", error);
+        return;
+      }
+      setReminders(
+        data.map((row) => ({
+          id: row.id,
+          title: row.title,
+          note: row.note,
+          datetime: toLocalInputValue(row.datetime),
+          fired: row.fired,
+          repeat: row.repeat,
+        }))
+      );
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Sync to SW whenever the list changes (including the initial load above).
+  useEffect(() => {
+    remindersRef.current = reminders;
     syncToSW(reminders);
   }, [reminders]);
 
   // Re-sync to SW once the SW controller is ready (after first registration)
   useEffect(() => {
-    const onControllerChange = () => syncToSW(loadReminders());
+    const onControllerChange = () => syncToSW(remindersRef.current);
     navigator.serviceWorker?.addEventListener("controllerchange", onControllerChange);
     return () => navigator.serviceWorker?.removeEventListener("controllerchange", onControllerChange);
   }, []);
@@ -131,26 +152,40 @@ const Reminders = () => {
     recordReminderFired();
   }, [notifPerm]);
 
-  // Check every 30 s for due reminders
+  // Check every 30 s for due reminders. Each changed row's Supabase update is
+  // awaited and only folded into local state on confirmed success — if it
+  // fails, that reminder's local state stays "still due" so it naturally
+  // retries next tick instead of drifting from the DB and double-firing
+  // after a refresh.
   useEffect(() => {
-    const tick = () => {
+    const tick = async () => {
       const now = Date.now();
-      setReminders((prev) => {
-        let changed = false;
-        const next = prev.map((r) => {
-          if (r.fired) return r;
-          const due = new Date(r.datetime).getTime();
-          if (now < due) return r;
-          fire(r);
-          changed = true;
-          if (r.repeat === "none") return { ...r, fired: true };
+      const due = remindersRef.current.filter((r) => !r.fired && new Date(r.datetime).getTime() <= now);
+      if (due.length === 0) return;
+
+      const confirmed: Record<string, Partial<Reminder>> = {};
+      await Promise.all(due.map(async (r) => {
+        fire(r);
+        let patch: Partial<Reminder>;
+        let dbPatch: Record<string, unknown>;
+        if (r.repeat === "none") {
+          patch = { fired: true };
+          dbPatch = { fired: true };
+        } else {
           const d = new Date(r.datetime);
           if (r.repeat === "daily")  d.setDate(d.getDate() + 1);
           if (r.repeat === "weekly") d.setDate(d.getDate() + 7);
-          return { ...r, datetime: d.toISOString().slice(0, 16) };
-        });
-        return changed ? next : prev;
-      });
+          const nextLocal = formatLocalInput(d);
+          patch = { datetime: nextLocal };
+          dbPatch = { datetime: d.toISOString() };
+        }
+        const { error } = await supabase.from("reminders").update(dbPatch).eq("id", r.id);
+        if (error) console.warn("reminder tick:", error);
+        else confirmed[r.id] = patch;
+      }));
+
+      if (Object.keys(confirmed).length === 0) return;
+      setReminders((prev) => prev.map((r) => (confirmed[r.id] ? { ...r, ...confirmed[r.id] } : r)));
     };
     tick();
     const id = setInterval(tick, 30_000);
@@ -169,12 +204,33 @@ const Reminders = () => {
     setForm({ title: "", note: "", datetime: localNow(), repeat: "none" });
     setShowForm(false);
     recordReminderCreated();
+    supabase.from("reminders").insert({
+      id: r.id, title: r.title, note: r.note,
+      datetime: new Date(r.datetime).toISOString(),
+      fired: r.fired, repeat: r.repeat,
+    }).then(({ error }) => { if (error) console.warn("addReminder:", error); });
   };
 
-  const deleteReminder  = (id: string) => setReminders((p) => p.filter((r) => r.id !== id));
-  const reschedule      = (id: string) => setReminders((p) =>
-    p.map((r) => r.id === id ? { ...r, fired: false, datetime: localNow() } : r)
-  );
+  const deleteReminder = (id: string) => {
+    setReminders((p) => p.filter((r) => r.id !== id));
+    supabase.from("reminders").delete().eq("id", id)
+      .then(({ error }) => { if (error) console.warn("deleteReminder:", error); });
+  };
+
+  const reschedule = (id: string) => {
+    const next = localNow();
+    setReminders((p) => p.map((r) => r.id === id ? { ...r, fired: false, datetime: next } : r));
+    supabase.from("reminders").update({ fired: false, datetime: new Date(next).toISOString() }).eq("id", id)
+      .then(({ error }) => { if (error) console.warn("reschedule:", error); });
+  };
+
+  const clearDone = () => {
+    const doneIds = reminders.filter((r) => r.fired).map((r) => r.id);
+    setReminders((p) => p.filter((r) => !r.fired));
+    if (doneIds.length === 0) return;
+    supabase.from("reminders").delete().in("id", doneIds)
+      .then(({ error }) => { if (error) console.warn("clearDone:", error); });
+  };
 
   // Single merged list for the reskinned layout: unfired first (soonest due
   // first), then fired/done ones trailing at the bottom.
@@ -345,7 +401,7 @@ const Reminders = () => {
           {firedCount > 0 && (
             <Box
               as="button" alignSelf="flex-start"
-              onClick={() => setReminders((p) => p.filter((r) => !r.fired))}
+              onClick={clearDone}
               color="#B79ACB" fontSize="11.5px" fontWeight="700" cursor="pointer"
               padding="4px 4px"
             >

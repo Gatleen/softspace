@@ -16,11 +16,17 @@ interface JiraTaskDTO {
   summary: string;
   dueDate: string | null;
   status: string;
+  statusCategory: string;
   done: boolean;
   jiraPriority: string | null;
 }
 
-const JQL = "assignee = currentUser() AND statusCategory != Done ORDER BY due ASC";
+// Excludes Backlog-status issues entirely; includes active issues plus anything
+// resolved in the last 30 days (so a Jira completion registers here as "done"
+// for about a month — enough to count toward the Progress Tracker / history —
+// without pulling in unbounded all-time Jira history).
+const JQL =
+  'assignee = currentUser() AND status != "Backlog" AND (statusCategory != Done OR resolutiondate >= -30d) ORDER BY updated DESC';
 
 export default async function handler(_req: IncomingMessage, res: ServerResponse) {
   const siteUrl = process.env.JIRA_SITE_URL;
@@ -60,15 +66,19 @@ export default async function handler(_req: IncomingMessage, res: ServerResponse
     }
 
     const data = (await jiraRes.json()) as { issues: JiraIssue[] };
-    const tasks: JiraTaskDTO[] = (data.issues || []).map((issue) => ({
-      key: issue.key,
-      url: `https://${siteUrl}/browse/${issue.key}`,
-      summary: issue.fields.summary,
-      dueDate: issue.fields.duedate,
-      status: issue.fields.status.name,
-      done: issue.fields.status.statusCategory.key === "done",
-      jiraPriority: issue.fields.priority?.name ?? null,
-    }));
+    const tasks: JiraTaskDTO[] = (data.issues || []).map((issue) => {
+      const statusCategory = issue.fields.status.statusCategory?.key ?? "new";
+      return {
+        key: issue.key,
+        url: `https://${siteUrl}/browse/${issue.key}`,
+        summary: issue.fields.summary,
+        dueDate: issue.fields.duedate,
+        status: issue.fields.status.name,
+        statusCategory,
+        done: statusCategory === "done",
+        jiraPriority: issue.fields.priority?.name ?? null,
+      };
+    });
 
     send(200, { configured: true, tasks });
   } catch {

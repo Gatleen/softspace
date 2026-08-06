@@ -22,29 +22,9 @@ import LearningTracker from "../components/LearningTracker";
 import Reminders, { TOAST_KEY } from "../components/Reminders";
 import { fetchJiraTasks } from "../lib/jiraTasks";
 import { recordAppVisit, BADGE_TOAST_KEY } from "../lib/achievements";
-
-interface Subtask {
-  id: number;
-  text: string;
-  completed: boolean;
-}
-
-interface Task {
-  id: number;
-  text: string;
-  completed: boolean;
-  priority: "low" | "medium" | "high";
-  createdAt: number;
-  dueDate?: string;
-  notes?: string;
-  tags: string[];
-  starred: boolean;
-  archived: boolean;
-  subtasks: Subtask[];
-  source?: "local" | "jira";
-  jiraKey?: string;
-  jiraUrl?: string;
-}
+import { STATUS_STYLE } from "../lib/taskStatus";
+import { supabase } from "../lib/supabase";
+import type { Task } from "../types/task";
 
 // How often to re-poll Jira for due-date changes (ms).
 const JIRA_POLL_MS = 15 * 60 * 1000;
@@ -93,7 +73,7 @@ const TodaysTasksCard = ({ tasks }: { tasks: Task[] }) => {
             border="2px solid"
             borderColor={t.completed ? "#BFE8CD" : "#FBC9D2"}
           >
-            <Box w="9px" h="9px" borderRadius="999px" flexShrink={0} bg={t.completed ? "#22C55E" : "#F43F5E"} />
+            <Box w="9px" h="9px" borderRadius="999px" flexShrink={0} bg={STATUS_STYLE[t.status].color} />
             <Text
               fontSize="12.5px"
               fontWeight="700"
@@ -108,7 +88,7 @@ const TodaysTasksCard = ({ tasks }: { tasks: Task[] }) => {
           </Box>
         ))}
         <Text mt="2px" fontSize="11.5px" fontWeight="600" color="#C2AECF">
-          Add more from the task list below ✧
+          Add more from the Tasks page ✧
         </Text>
       </Box>
     </Box>
@@ -165,6 +145,42 @@ const Dashboard = () => {
     sync();
     const id = setInterval(sync, JIRA_POLL_MS);
     return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  // Load persisted local tasks from Supabase. Merged functionally (never a
+  // blind `setTasks(localTasks)`) so this can't race/clobber whatever the
+  // Jira-poll effect above has already merged into state.
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("tasks")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) {
+          if (error) console.warn("load tasks:", error);
+          return;
+        }
+        const localTasks: Task[] = data.map((row) => ({
+          id: row.id,
+          text: row.text,
+          completed: row.completed,
+          status: row.status,
+          priority: row.priority,
+          createdAt: new Date(row.created_at).getTime(),
+          completedAt: row.completed_at ?? undefined,
+          dueDate: row.due_date ?? undefined,
+          notes: row.notes ?? undefined,
+          tags: row.tags ?? [],
+          starred: row.starred,
+          archived: row.archived,
+          subtasks: row.subtasks ?? [],
+          source: "local",
+        }));
+        setTasks((prev) => [...localTasks, ...prev.filter((t) => t.source === "jira")]);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   // Record today's visit for the Early Bird / Consistent-streak badges.
@@ -251,9 +267,8 @@ const Dashboard = () => {
             gap={6}
             alignItems="start"
           >
-            {/* ── Column 1: Tasks + Progress ── */}
+            {/* ── Column 1: Progress Tracker (includes status breakdown) ── */}
             <Box display="flex" flexDirection="column" gap={6}>
-              <TaskList tasks={tasks} setTasks={setTasks} />
               <ProgressTracker tasks={tasks} />
             </Box>
 
@@ -281,6 +296,7 @@ const Dashboard = () => {
             </Box>
           </Box>
         )}
+        {currentView === "tasks" && <TaskList tasks={tasks} setTasks={setTasks} />}
         {currentView === "journal" && (
           <Box animation="fade-in 0.5s ease-in-out">
             <Notebook />

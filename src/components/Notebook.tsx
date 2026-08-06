@@ -5,6 +5,7 @@ import stickerPacks from "../data/stickerPacks.json";
 import SoftSpaceCard from "./ui/SoftSpaceCard";
 import SectionHeader from "./ui/SectionHeader";
 import { recordJournalEntryCount } from "../lib/achievements";
+import { supabase } from "../lib/supabase";
 
 // 🏗️ Data Structure
 interface Attachment {
@@ -17,16 +18,19 @@ interface Attachment {
 }
 
 interface NoteEntry {
-  id: number;
+  id: string;
   title: string;
   content: string;
-  date: string;
+  createdAt: number;
   attachments: Attachment[];
 }
 
+const fmtDate = (ms: number) =>
+  new Date(ms).toLocaleDateString("en-MY", { weekday: "short", month: "short", day: "numeric" });
+
 const Notebook = () => {
   const [entries, setEntries] = useState<NoteEntry[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // 🖱️ Interaction State
@@ -41,28 +45,102 @@ const Notebook = () => {
   const [isStickerDrawerOpen, setIsStickerDrawerOpen] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("softspace_notebook");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const migrated = parsed.map((e: NoteEntry) => ({
-        ...e,
-        attachments: e.attachments.map((a) => ({
-          ...a,
-          width: a.width || 120,
-        })),
-      }));
-      setEntries(migrated);
-      if (migrated.length > 0) setSelectedId(migrated[0].id);
+  // Debounced title/content autosave — captures the target entry id at edit
+  // time (not re-read at fire time), flushed immediately on entry-switch,
+  // manual save, or the tab being backgrounded/closed.
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<{ id: string; updates: Partial<Pick<NoteEntry, "title" | "content">> } | null>(null);
+
+  const flushPendingSave = () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
     }
+    const pending = pendingSaveRef.current;
+    pendingSaveRef.current = null;
+    if (!pending) return;
+    supabase.from("journal_entries").update(pending.updates).eq("id", pending.id)
+      .then(({ error }) => { if (error) console.warn("save entry:", error); });
+  };
+
+  const scheduleTextSave = (entryId: string, field: "title" | "content", value: string) => {
+    if (pendingSaveRef.current && pendingSaveRef.current.id !== entryId) flushPendingSave();
+    pendingSaveRef.current = {
+      id: entryId,
+      updates: { ...pendingSaveRef.current?.updates, [field]: value },
+    };
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(flushPendingSave, 800);
+  };
+
+  const selectEntry = (id: string | null) => {
+    flushPendingSave();
+    setSelectedId(id);
+  };
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flushPendingSave();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("softspace_notebook", JSON.stringify(entries));
-  }, [entries]);
+    let cancelled = false;
+    (async () => {
+      const [{ data: entriesData, error: entriesError }, { data: attachmentsData, error: attachmentsError }] =
+        await Promise.all([
+          supabase.from("journal_entries").select("*").order("created_at", { ascending: false }),
+          supabase.from("journal_attachments").select("*"),
+        ]);
+      if (cancelled) return;
+      if (entriesError || !entriesData) {
+        if (entriesError) console.warn("load journal_entries:", entriesError);
+        return;
+      }
+      if (attachmentsError) console.warn("load journal_attachments:", attachmentsError);
+
+      const attachmentsByEntry = new Map<string, Attachment[]>();
+      (attachmentsData ?? []).forEach((a) => {
+        const list = attachmentsByEntry.get(a.entry_id) ?? [];
+        list.push({ id: a.id, src: a.src, x: a.x, y: a.y, width: a.width, rotation: a.rotation });
+        attachmentsByEntry.set(a.entry_id, list);
+      });
+
+      const loaded: NoteEntry[] = entriesData.map((e) => ({
+        id: e.id,
+        title: e.title,
+        content: e.content,
+        createdAt: new Date(e.created_at).getTime(),
+        attachments: attachmentsByEntry.get(e.id) ?? [],
+      }));
+      setEntries(loaded);
+      if (loaded.length > 0) setSelectedId(loaded[0].id);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
+    // Persist the final position/size once, on drop — not on every mousemove
+    // pixel (that would flood Supabase; local state during the drag itself
+    // stays purely in-memory via updateAttachmentPosition/Size below).
     const handleGlobalMouseUp = () => {
+      const entry = entries.find((e) => e.id === selectedId);
+      if (draggingId) {
+        const att = entry?.attachments.find((a) => a.id === draggingId);
+        if (att) {
+          supabase.from("journal_attachments").update({ x: att.x, y: att.y }).eq("id", att.id)
+            .then(({ error }) => { if (error) console.warn("attachment move:", error); });
+        }
+      }
+      if (resizingId) {
+        const att = entry?.attachments.find((a) => a.id === resizingId);
+        if (att) {
+          supabase.from("journal_attachments").update({ width: att.width }).eq("id", att.id)
+            .then(({ error }) => { if (error) console.warn("attachment resize:", error); });
+        }
+      }
       setDraggingId(null);
       setResizingId(null);
     };
@@ -143,6 +221,15 @@ const Notebook = () => {
     };
     updateEntry("attachments", [...activeEntry.attachments, newAtt]);
     setIsStickerDrawerOpen(false);
+    supabase.from("journal_attachments").insert({
+      id: newAtt.id,
+      entry_id: activeEntry.id,
+      src: newAtt.src,
+      x: newAtt.x,
+      y: newAtt.y,
+      width: newAtt.width,
+      rotation: newAtt.rotation,
+    }).then(({ error }) => { if (error) console.warn("addAttachment:", error); });
   };
 
   const handleDragStart = (e: React.MouseEvent, att: Attachment) => {
@@ -164,22 +251,25 @@ const Notebook = () => {
   };
 
   const handleManualSave = () => {
-    localStorage.setItem("softspace_notebook", JSON.stringify(entries));
+    flushPendingSave();
     setIsSaving(true);
     setTimeout(() => setIsSaving(false), 1500);
   };
 
   const addEntry = () => {
+    const id = crypto.randomUUID();
     const newEntry: NoteEntry = {
-      id: Date.now(),
+      id,
       title: "",
       content: "",
-      date: new Date().toLocaleDateString(),
+      createdAt: Date.now(),
       attachments: [],
     };
     setEntries([newEntry, ...entries]);
-    setSelectedId(newEntry.id);
+    selectEntry(id);
     recordJournalEntryCount(entries.length + 1);
+    supabase.from("journal_entries").insert({ id, title: "", content: "" })
+      .then(({ error }) => { if (error) console.warn("addEntry:", error); });
   };
 
   const updateEntry = (field: keyof NoteEntry, value: any) => {
@@ -191,11 +281,13 @@ const Notebook = () => {
     );
   };
 
-  const deleteEntry = (id: number) => {
+  const deleteEntry = (id: string) => {
     const newEntries = entries.filter((ent) => ent.id !== id);
     setEntries(newEntries);
     if (selectedId === id)
-      setSelectedId(newEntries.length > 0 ? newEntries[0].id : null);
+      selectEntry(newEntries.length > 0 ? newEntries[0].id : null);
+    supabase.from("journal_entries").delete().eq("id", id)
+      .then(({ error }) => { if (error) console.warn("deleteEntry:", error); });
   };
 
   const removeAttachment = (attId: string) => {
@@ -204,6 +296,8 @@ const Notebook = () => {
         "attachments",
         activeEntry.attachments.filter((a) => a.id !== attId),
       );
+      supabase.from("journal_attachments").delete().eq("id", attId)
+        .then(({ error }) => { if (error) console.warn("removeAttachment:", error); });
     }
   };
 
@@ -228,7 +322,7 @@ const Notebook = () => {
     <Box w="100%">
       <SectionHeader
         title="My Journal"
-        meta={`${entries.length} ${entries.length === 1 ? "entry" : "entries"} · saved to this device`}
+        meta={`${entries.length} ${entries.length === 1 ? "entry" : "entries"} · saved to the cloud`}
       />
 
       <Box display="flex" gap="22px" alignItems="flex-start" flexWrap="wrap">
@@ -267,7 +361,7 @@ const Notebook = () => {
                 return (
                   <Box
                     key={ent.id}
-                    onClick={() => setSelectedId(ent.id)}
+                    onClick={() => selectEntry(ent.id)}
                     cursor="pointer"
                     padding="13px 14px"
                     borderRadius="16px"
@@ -287,7 +381,7 @@ const Notebook = () => {
                         {ent.title || "Untitled"}
                       </Text>
                       <Text fontSize="10px" fontWeight="700" color="#C2AECF" flexShrink={0}>
-                        {ent.date}
+                        {fmtDate(ent.createdAt)}
                       </Text>
                     </Box>
                     <Text
@@ -333,7 +427,10 @@ const Notebook = () => {
                 <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap="12px">
                   <Input
                     value={activeEntry.title}
-                    onChange={(e) => updateEntry("title", e.target.value)}
+                    onChange={(e) => {
+                      updateEntry("title", e.target.value);
+                      scheduleTextSave(activeEntry.id, "title", e.target.value);
+                    }}
                     placeholder="Untitled Story..."
                     fontFamily="'Jersey 25', cursive"
                     fontSize="40px"
@@ -357,7 +454,7 @@ const Notebook = () => {
                   </IconButton>
                 </Box>
                 <Text fontSize="11.5px" fontWeight="700" color="#C2AECF">
-                  {activeEntry.date}
+                  {fmtDate(activeEntry.createdAt)}
                 </Text>
 
                 {/* 📝 CANVAS — lined paper, drag/resize logic untouched */}
@@ -391,7 +488,10 @@ const Notebook = () => {
                     _focus={{ boxShadow: "none" }}
                     placeholder="Start writing..."
                     value={activeEntry.content}
-                    onChange={(e) => updateEntry("content", e.target.value)}
+                    onChange={(e) => {
+                      updateEntry("content", e.target.value);
+                      scheduleTextSave(activeEntry.id, "content", e.target.value);
+                    }}
                     position="relative"
                     zIndex={1}
                   />

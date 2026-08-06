@@ -12,11 +12,14 @@ import {
 import { useState, useMemo } from "react";
 import { Flag, Calendar, SortAsc, Archive, Heart, ChevronDown, ChevronRight, Plus, ExternalLink } from "lucide-react";
 import { getDueBucket, DUE_BUCKET_STYLE } from "../lib/dueDate";
+import { STATUS_CONFIG, STATUS_STYLE, STATUS_CYCLE } from "../lib/taskStatus";
 import { recordTaskCompleted, recordTaskStarred } from "../lib/achievements";
+import { supabase } from "../lib/supabase";
+import type { Task } from "../types/task";
 
 type Priority = "low" | "medium" | "high";
 type SortBy = "priority" | "date" | "name" | "dueDate";
-type FilterBy = "all" | "active" | "completed" | "archived";
+type FilterBy = "all" | "active" | "completed";
 type SourceFilter = "local" | "jira" | "all";
 
 const PRIORITY_CONFIG: Record<Priority, { bg: string; color: string; dot: string; label: string }> = {
@@ -24,29 +27,6 @@ const PRIORITY_CONFIG: Record<Priority, { bg: string; color: string; dot: string
   medium: { bg: "#fff7ed", color: "#c2410c", dot: "#f97316", label: "Medium" },
   high:   { bg: "#fff1f2", color: "#be123c", dot: "#f43f5e", label: "High"   },
 };
-
-interface Subtask {
-  id: number;
-  text: string;
-  completed: boolean;
-}
-
-interface Task {
-  id: number;
-  text: string;
-  completed: boolean;
-  priority: Priority;
-  createdAt: number;
-  dueDate?: string;
-  notes?: string;
-  tags: string[];
-  starred: boolean;
-  archived: boolean;
-  subtasks: Subtask[];
-  source?: "local" | "jira";
-  jiraKey?: string;
-  jiraUrl?: string;
-}
 
 interface Props {
   tasks: Task[];
@@ -57,11 +37,11 @@ const TaskList = ({ tasks, setTasks }: Props) => {
   // --- STATE ---
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("local");
-  const [filterBy] = useState<FilterBy>("all");
+  const [filterBy, setFilterBy] = useState<FilterBy>("active");
   const [sortBy] = useState<SortBy>("priority");
   const [sortAscending, setSortAscending] = useState(false);
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [subtaskInputs, setSubtaskInputs] = useState<Record<number, string>>({});
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [subtaskInputs, setSubtaskInputs] = useState<Record<string, string>>({});
 
   const [newTask, setNewTask] = useState({
     text: "",
@@ -71,12 +51,15 @@ const TaskList = ({ tasks, setTasks }: Props) => {
   });
 
   // --- LOGIC ---
+  // Jira-sourced tasks are never persisted here — they're always live-synced
+  // from the Jira API each session (see fetchJiraTasks/Dashboard.tsx).
   const addTask = () => {
     if (!newTask.text.trim()) return;
     const task: Task = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       text: newTask.text,
       completed: false,
+      status: "not_started",
       priority: newTask.priority,
       createdAt: Date.now(),
       dueDate: newTask.dueDate || undefined,
@@ -87,15 +70,51 @@ const TaskList = ({ tasks, setTasks }: Props) => {
     };
     setTasks((prev) => [...prev, task]);
     setNewTask({ text: "", priority: "low", dueDate: "", tags: "" });
+    supabase.from("tasks").insert({
+      id: task.id,
+      text: task.text,
+      completed: task.completed,
+      status: task.status,
+      priority: task.priority,
+      due_date: task.dueDate ?? null,
+      tags: task.tags,
+      starred: task.starred,
+      archived: task.archived,
+      subtasks: task.subtasks,
+    }).then(({ error }) => { if (error) console.warn("addTask:", error); });
   };
 
-  const updateTask = (id: number, updates: Partial<Task>) => {
+  // Only ever called with {starred} or {archived} — both column names match
+  // the Task field names verbatim, so no camelCase/snake_case mapping needed.
+  const updateTask = (id: string, updates: Partial<Task>) => {
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
     );
+    const task = tasks.find((t) => t.id === id);
+    if (task?.source === "jira") return;
+    supabase.from("tasks").update(updates).eq("id", id)
+      .then(({ error }) => { if (error) console.warn("updateTask:", error); });
   };
 
-  const toggleExpand = (id: number) => {
+  // Single rule for every place a task can become (or un-become) done, so
+  // recordTaskCompleted() fires exactly once per genuine not-done -> done
+  // transition, regardless of which control triggered it (checkbox, status
+  // pill, or subtask auto-complete below).
+  const setTaskStatus = (taskId: string, status: Task["status"]) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const nowDone = status === "done";
+    if (nowDone && !task.completed) recordTaskCompleted();
+    const completedAt = nowDone ? new Date().toISOString() : undefined;
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status, completed: nowDone, completedAt } : t))
+    );
+    if (task.source === "jira") return;
+    supabase.from("tasks").update({ status, completed: nowDone, completed_at: completedAt ?? null }).eq("id", taskId)
+      .then(({ error }) => { if (error) console.warn("setTaskStatus:", error); });
+  };
+
+  const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -103,31 +122,39 @@ const TaskList = ({ tasks, setTasks }: Props) => {
     });
   };
 
-  const addSubtask = (taskId: number) => {
+  const addSubtask = (taskId: string) => {
     const text = (subtaskInputs[taskId] || "").trim();
     if (!text) return;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const nextSubtasks = [...task.subtasks, { id: crypto.randomUUID(), text, completed: false }];
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: nextSubtasks } : t)));
+    setSubtaskInputs((prev) => ({ ...prev, [taskId]: "" }));
+    supabase.from("tasks").update({ subtasks: nextSubtasks }).eq("id", taskId)
+      .then(({ error }) => { if (error) console.warn("addSubtask:", error); });
+  };
+
+  const toggleSubtask = (taskId: string, subtaskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const updatedSubs = task.subtasks.map((s) =>
+      s.id === subtaskId ? { ...s, completed: !s.completed } : s
+    );
+    // auto-complete parent when all subtasks done
+    const allDone = updatedSubs.length > 0 && updatedSubs.every((s) => s.completed);
+    if (allDone && !task.completed) recordTaskCompleted();
+    const completedAt = allDone ? new Date().toISOString() : undefined;
+    const nextStatus = allDone ? "done" : task.status;
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId
-          ? { ...t, subtasks: [...t.subtasks, { id: Date.now(), text, completed: false }] }
+          ? { ...t, subtasks: updatedSubs, completed: allDone, status: nextStatus, completedAt }
           : t
       )
     );
-    setSubtaskInputs((prev) => ({ ...prev, [taskId]: "" }));
-  };
-
-  const toggleSubtask = (taskId: number, subtaskId: number) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        const updatedSubs = t.subtasks.map((s) =>
-          s.id === subtaskId ? { ...s, completed: !s.completed } : s
-        );
-        // auto-complete parent when all subtasks done
-        const allDone = updatedSubs.length > 0 && updatedSubs.every((s) => s.completed);
-        return { ...t, subtasks: updatedSubs, completed: allDone };
-      })
-    );
+    supabase.from("tasks").update({
+      subtasks: updatedSubs, completed: allDone, status: nextStatus, completed_at: completedAt ?? null,
+    }).eq("id", taskId).then(({ error }) => { if (error) console.warn("toggleSubtask:", error); });
   };
 
   // --- MEMOIZED DATA ---
@@ -148,31 +175,46 @@ const TaskList = ({ tasks, setTasks }: Props) => {
     [tasks]
   );
 
-  const filteredTasks = useMemo(() => {
-    return sourceFilteredTasks
-      .filter((t) => {
-        const matchesFilter =
-          filterBy === "active"
-            ? !t.completed && !t.archived
-            : filterBy === "completed"
-              ? t.completed && !t.archived
-              : filterBy === "archived"
-                ? t.archived
-                : !t.archived;
+  const statusCounts = useMemo(
+    () => ({
+      active: sourceFilteredTasks.filter((t) => !t.completed && !t.archived).length,
+      completed: sourceFilteredTasks.filter((t) => t.completed && !t.archived).length,
+      all: sourceFilteredTasks.filter((t) => !t.archived).length,
+    }),
+    [sourceFilteredTasks]
+  );
 
-        const matchesSearch = t.text
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-        return matchesFilter && matchesSearch;
-      })
-      .sort((a, b) => {
-        const order = sortAscending ? 1 : -1;
-        if (sortBy === "priority") {
-          const weights = { low: 1, medium: 2, high: 3 };
-          return (weights[a.priority] - weights[b.priority]) * order;
-        }
-        return a.text.localeCompare(b.text) * order;
-      });
+  const filteredTasks = useMemo(() => {
+    const matching = sourceFilteredTasks.filter((t) => {
+      const matchesFilter =
+        filterBy === "active"
+          ? !t.completed && !t.archived
+          : filterBy === "completed"
+            ? t.completed && !t.archived
+            : !t.archived;
+
+      const matchesSearch = t.text
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+
+    // "Done" is a history view — always most-recently-finished first,
+    // independent of the priority/name sort control used by the other filters.
+    if (filterBy === "completed") {
+      return [...matching].sort(
+        (a, b) => new Date(b.completedAt ?? b.createdAt).getTime() - new Date(a.completedAt ?? a.createdAt).getTime()
+      );
+    }
+
+    return matching.sort((a, b) => {
+      const order = sortAscending ? 1 : -1;
+      if (sortBy === "priority") {
+        const weights = { low: 1, medium: 2, high: 3 };
+        return (weights[a.priority] - weights[b.priority]) * order;
+      }
+      return a.text.localeCompare(b.text) * order;
+    });
   }, [sourceFilteredTasks, filterBy, searchQuery, sortBy, sortAscending]);
 
   return (
@@ -253,6 +295,24 @@ const TaskList = ({ tasks, setTasks }: Props) => {
             <option value="local">Show: Local ({sourceCounts.local})</option>
             <option value="jira">Show: Jira ({sourceCounts.jira})</option>
             <option value="all">Show: All ({sourceCounts.all})</option>
+          </select>
+          <select
+            value={filterBy}
+            onChange={(e) => setFilterBy(e.target.value as FilterBy)}
+            style={{
+              background: "white",
+              borderRadius: "999px",
+              border: "1.5px solid #FBCFE8",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#DB2777",
+              padding: "8px 12px",
+              cursor: "pointer",
+            }}
+          >
+            <option value="active">Status: Active ({statusCounts.active})</option>
+            <option value="completed">Status: Done ({statusCounts.completed})</option>
+            <option value="all">Status: All ({statusCounts.all})</option>
           </select>
           <IconButton
             aria-label="Sort"
@@ -371,9 +431,11 @@ const TaskList = ({ tasks, setTasks }: Props) => {
                   disabled={task.source === "jira"}
                   onCheckedChange={() => {
                     if (task.source === "jira") return;
-                    const nowCompleted = !task.completed;
-                    updateTask(task.id, { completed: nowCompleted });
-                    if (nowCompleted) recordTaskCompleted();
+                    // Checking always jumps straight to "done"; unchecking always
+                    // resets to "not_started" — this intentionally does NOT restore
+                    // a prior "in_progress" state, it's a deliberate simplification
+                    // for this quick-toggle shortcut (use the status pill for that).
+                    setTaskStatus(task.id, task.completed ? "not_started" : "done");
                   }}
                   colorPalette="pink"
                   mt="2px"
@@ -410,6 +472,32 @@ const TaskList = ({ tasks, setTasks }: Props) => {
                       <Box w="6px" h="6px" borderRadius="full" bg={pc.dot} flexShrink={0} />
                       <Text fontSize="10px" fontWeight="800" color={pc.color}>
                         {pc.label}
+                      </Text>
+                    </Box>
+
+                    {/* Status pill — cycles for local tasks, read-only (real Jira status) for synced ones */}
+                    <Box
+                      as="button"
+                      title={task.source === "jira" ? undefined : "Click to change status"}
+                      onClick={() => {
+                        if (task.source === "jira") return;
+                        const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(task.status) + 1) % STATUS_CYCLE.length];
+                        setTaskStatus(task.id, next);
+                      }}
+                      px={2} py="2px"
+                      bg={STATUS_STYLE[task.status].bg}
+                      borderRadius="full"
+                      border="1px solid"
+                      borderColor={STATUS_STYLE[task.status].color + "33"}
+                      display="inline-flex"
+                      alignItems="center"
+                      gap="5px"
+                      cursor={task.source === "jira" ? "default" : "pointer"}
+                      color={STATUS_STYLE[task.status].color}
+                    >
+                      {STATUS_CONFIG[task.status].icon}
+                      <Text fontSize="10px" fontWeight="800" color={STATUS_STYLE[task.status].color}>
+                        {task.source === "jira" && task.jiraStatusLabel ? task.jiraStatusLabel : STATUS_CONFIG[task.status].label}
                       </Text>
                     </Box>
 

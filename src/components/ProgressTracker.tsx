@@ -1,18 +1,14 @@
 import { Box, Text, Image, VStack, HStack } from "@chakra-ui/react";
 import { motion } from "framer-motion";
-
-interface Subtask {
-  completed: boolean;
-}
-
-interface Task {
-  completed: boolean;
-  subtasks?: Subtask[];
-}
+import { PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer } from "recharts";
+import { STATUS_CONFIG, STATUS_STYLE } from "../lib/taskStatus";
+import type { Task, TaskStatus } from "../types/task";
 
 interface ProgressTrackerProps {
   tasks: Task[];
 }
+
+const STATUS_ORDER: TaskStatus[] = ["not_started", "in_progress", "done"];
 
 const ProgressTracker = ({ tasks }: ProgressTrackerProps) => {
   // Count each subtask individually; tasks without subtasks count as 1 item
@@ -26,6 +22,14 @@ const ProgressTracker = ({ tasks }: ProgressTrackerProps) => {
     return sum + (t.completed ? 1 : 0);
   }, 0);
   const progressValue = total === 0 ? 0 : (completed / total) * 100;
+
+  const activeTasks = tasks.filter((t) => !t.archived);
+  const statusData = STATUS_ORDER.map((status) => ({
+    status,
+    name: STATUS_CONFIG[status].label,
+    value: activeTasks.filter((t) => t.status === status).length,
+    color: STATUS_STYLE[status].color,
+  })).filter((d) => d.value > 0);
 
   const getMascotImage = () => {
     if (progressValue === 0) return "/LumiStart.png";
@@ -170,6 +174,40 @@ const ProgressTracker = ({ tasks }: ProgressTrackerProps) => {
             ? "Lumi is so proud of your hard work! Stay sparkling! 🎀"
             : "Lumi is cheering you on every step of the way! 💕"}
         </Text>
+      </Box>
+
+      {/* Task status breakdown */}
+      <Box mt={5} pt={4} borderTop="2px dashed #FFE4EF">
+        <Text fontSize="10.5px" fontWeight="800" letterSpacing="2px" color="#B79ACB" textAlign="center" mb="8px">
+          STATUS BREAKDOWN
+        </Text>
+        {activeTasks.length === 0 ? (
+          <Text textAlign="center" color="#C2AECF" py="16px" fontSize="12.5px" fontWeight="600">
+            No tasks yet — add one on the Tasks page 🌸
+          </Text>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={170}>
+              <PieChart>
+                <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={72} paddingAngle={3} dataKey="value">
+                  {statusData.map((entry) => (
+                    <Cell key={entry.status} fill={entry.color} />
+                  ))}
+                </Pie>
+                <ReTooltip formatter={(v) => { const n = Number(v); return `${n} task${n === 1 ? "" : "s"}`; }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <Box display="flex" justifyContent="center" gap="16px" mt="8px" flexWrap="wrap">
+              {statusData.map((d) => (
+                <Box key={d.status} display="flex" alignItems="center" gap="6px">
+                  <Box w="9px" h="9px" borderRadius="full" style={{ background: d.color }} />
+                  <Text fontSize="11.5px" fontWeight="700" color="#5C4A63">{d.name}</Text>
+                  <Text fontSize="11.5px" color="#A08B9B">{d.value}</Text>
+                </Box>
+              ))}
+            </Box>
+          </>
+        )}
       </Box>
       </Box>
 

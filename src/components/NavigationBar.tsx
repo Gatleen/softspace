@@ -9,6 +9,7 @@ interface Props {
 const NavigationBar = ({ currentView, setView, onFocus }: Props) => {
   const navItems = [
     { id: "dashboard",    label: "Dashboard",  icon: "/icons/Dashboard.png" },
+    { id: "tasks",        label: "Tasks",      icon: "/icons/Task.png"     },
     { id: "journal",      label: "Journal",    icon: "/icons/Notebook.png"  },
     { id: "achievements", label: "Badges",     icon: "/icons/Badge.png"     },
     { id: "companions",   label: "Friends",    icon: "/icons/Friend.png"    },

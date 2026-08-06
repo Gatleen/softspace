@@ -1,9 +1,12 @@
+import type { TaskStatus } from "../types/task";
+
 interface JiraTaskDTO {
   key: string;
   url: string;
   summary: string;
   dueDate: string | null;
   status: string;
+  statusCategory: string;
   done: boolean;
   jiraPriority: string | null;
 }
@@ -15,9 +18,10 @@ interface JiraTasksResponse {
 }
 
 export interface JiraSourcedTask {
-  id: number;
+  id: string;
   text: string;
   completed: boolean;
+  status: TaskStatus;
   priority: "low" | "medium" | "high";
   createdAt: number;
   dueDate?: string;
@@ -28,13 +32,16 @@ export interface JiraSourcedTask {
   source: "jira";
   jiraKey: string;
   jiraUrl: string;
+  jiraStatusLabel: string;
 }
 
-// Deterministic string -> positive int, so the same Jira issue always maps to the same task id.
-const hashKey = (key: string) => {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (Math.imul(31, h) + key.charCodeAt(i)) | 0;
-  return Math.abs(h);
+// Jira's statusCategory.key is a fixed Atlassian platform enum ("new" /
+// "indeterminate" / "done"), unlike the free-text status name — robust
+// across differently-configured workflows.
+const mapStatus = (statusCategory: string): TaskStatus => {
+  if (statusCategory === "done") return "done";
+  if (statusCategory === "indeterminate") return "in_progress";
+  return "not_started";
 };
 
 const mapPriority = (jiraPriority: string | null): "low" | "medium" | "high" => {
@@ -45,7 +52,14 @@ const mapPriority = (jiraPriority: string | null): "low" | "medium" | "high" => 
   return "medium";
 };
 
-/** Fetches the current user's assigned, unresolved Jira issues via the /api/jira-tasks proxy. Fails soft. */
+/**
+ * Fetches the current user's assigned Jira issues via the /api/jira-tasks proxy. Fails soft.
+ *
+ * Excludes Backlog-status issues; includes active issues plus anything resolved
+ * in the last 30 days, so completing a task in Jira surfaces here as
+ * `status: "done"` (and counts toward the Progress Tracker) for about a month
+ * before aging out of the synced set.
+ */
 export const fetchJiraTasks = async (): Promise<JiraSourcedTask[]> => {
   try {
     const res = await fetch("/api/jira-tasks");
@@ -54,9 +68,10 @@ export const fetchJiraTasks = async (): Promise<JiraSourcedTask[]> => {
     if (!data.configured) return [];
 
     return data.tasks.map((t) => ({
-      id: hashKey(t.key),
+      id: `jira-${t.key}`,
       text: t.summary,
       completed: t.done,
+      status: mapStatus(t.statusCategory),
       priority: mapPriority(t.jiraPriority),
       createdAt: Date.now(),
       dueDate: t.dueDate ?? undefined,
@@ -67,6 +82,7 @@ export const fetchJiraTasks = async (): Promise<JiraSourcedTask[]> => {
       source: "jira" as const,
       jiraKey: t.key,
       jiraUrl: t.url,
+      jiraStatusLabel: t.status,
     }));
   } catch {
     return [];
